@@ -97,9 +97,8 @@ export default function PrivacyPage() {
             <h2 className="text-2xl font-semibold font-display mt-8 mb-4">9. Contact Us</h2>
             <p>If you have any questions about this Privacy Policy, please contact us at:</p>
             <p>
-              Email: privacy@archerhealth.com
+              Email: antonioarcher.dev@gmail.com
               <br />
-              Address: 123 Health Street, Wellness City, WC 12345
             </p>
           </CardContent>
         </Card>

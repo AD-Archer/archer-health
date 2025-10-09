@@ -50,12 +50,6 @@ export default function LandingPage() {
             <span className="text-xl font-bold font-display">Archer Health</span>
           </div>
           <nav className="hidden md:flex items-center gap-6">
-            <Link href="#features" className="text-sm font-medium hover:text-primary">
-              Features
-            </Link>
-            <Link href="#how-it-works" className="text-sm font-medium hover:text-primary">
-              How It Works
-            </Link>
             <Link href="/login" className="text-sm font-medium hover:text-primary">
               Log In
             </Link>
@@ -90,13 +84,13 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="relative">
-            <div className="aspect-square rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 p-8 flex items-center justify-center">
+            <div className="rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 p-4 flex items-center justify-center">
               <Image
-                src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Gemini_Generated_Image_1u4u4o1u4u4o1u4u-jsBF8xEOBEg8TkNfLDRnSKc5Wv36sR.png"
+                src="/banner.webp"
                 alt="Archer Health App"
-                width={400}
-                height={400}
-                className="rounded-xl"
+                width={600}
+                height={300}
+                className="rounded-xl object-cover w-full h-auto max-h-[300px]"
               />
             </div>
           </div>

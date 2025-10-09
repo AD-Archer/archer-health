@@ -113,9 +113,8 @@ export default function TermsPage() {
             <h2 className="text-2xl font-semibold font-display mt-8 mb-4">11. Contact Information</h2>
             <p>If you have any questions about these Terms of Service, please contact us:</p>
             <p>
-              Email: legal@archerhealth.com
+              Email: antonioarcher.dev@gmail.com
               <br />
-              Address: 123 Health Street, Wellness City, WC 12345
             </p>
           </CardContent>
         </Card>

@@ -18,6 +18,7 @@ export interface User {
     fat: number
   }
   waterGoal: number // oz
+  waterGoalUnit?: "oz" | "ml"
   isPremium: boolean
   units: "metric" | "imperial"
   timezone: string

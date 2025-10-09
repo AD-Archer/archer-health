@@ -27,13 +27,13 @@ export default function SignupPage() {
     }
     console.log("Signup attempt:", email)
     // Signup logic would go here
-    router.push("/dashboard")
+    router.push("/onboarding")
   }
 
   const handleGoogleSignup = () => {
     console.log("Google signup attempt")
     // Google OAuth logic would go here
-    router.push("/dashboard")
+    router.push("/onboarding")
   }
 
   return (
