@@ -14,6 +14,7 @@ import { MotivationalNotes } from "./components/motivational-notes";
 import { NutrientsCard } from "./components/nutrients-card";
 import { ProgressChart } from "./components/progress-chart";
 import { QuickStats } from "./components/quick-stats";
+import { TargetProgressCard } from "./components/target-progress-card";
 import { WeightUpdateCard } from "./components/weight-update-card";
 
 interface UserProfile {
@@ -162,15 +163,14 @@ export default function DashboardPage() {
 				<DashboardHeader />
 				<QuickStats userProfile={userProfile} todaysMeals={todaysMeals} />
 				<MotivationalNotes userProfile={userProfile} />
-				<div className="grid gap-6 md:grid-cols-2">
-					<ProgressChart userProfile={userProfile} />
-				</div>
-				<div className="grid gap-6 md:grid-cols-3">
+				<ProgressChart userProfile={userProfile} />
+				<div className="grid gap-6 md:grid-cols-4">
 					<MacrosCard userProfile={userProfile} todaysMacros={todaysMacros} />
 					<NutrientsCard
 						_userProfile={userProfile}
 						todaysMacros={todaysMacros}
 					/>
+					<TargetProgressCard userProfile={userProfile} />
 					<WeightUpdateCard
 						userProfile={userProfile}
 						onWeightUpdate={(newWeight: number) => {
