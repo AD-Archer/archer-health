@@ -6,9 +6,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { MessageCircle, Mail, Book } from "lucide-react"
-import { useState } from "react"
+import { MessageCircle, Mail, Book, Loader2 } from "lucide-react"
+import { useState, useEffect } from "react"
+import { useUser } from "@clerk/nextjs"
+import { toast } from "sonner"
 
 interface HelpModalProps {
   open: boolean
@@ -17,6 +20,79 @@ interface HelpModalProps {
 
 export function HelpModal({ open, onOpenChange }: HelpModalProps) {
   const [activeTab, setActiveTab] = useState<"faq" | "contact">("faq")
+  const { user } = useUser()
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [includeContactInfo, setIncludeContactInfo] = useState(false)
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    subject: "",
+    message: ""
+  })
+
+  // Update form data when includeContactInfo changes
+  useEffect(() => {
+    if (includeContactInfo && user) {
+      setFormData(prev => ({
+        ...prev,
+        name: user.fullName || user.firstName || "",
+        email: user.primaryEmailAddress?.emailAddress || ""
+      }))
+    } else if (!includeContactInfo) {
+      setFormData(prev => ({
+        ...prev,
+        name: "",
+        email: ""
+      }))
+    }
+  }, [includeContactInfo, user])
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!formData.subject || !formData.message) {
+      toast.error("Please fill in subject and message")
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        toast.success("Message sent successfully! We'll get back to you soon.")
+        // Reset form
+        setFormData({
+          name: includeContactInfo && user ? (user.fullName || user.firstName || "") : "",
+          email: includeContactInfo && user ? (user.primaryEmailAddress?.emailAddress || "") : "",
+          subject: "",
+          message: ""
+        })
+        // Close modal
+        onOpenChange(false)
+      } else {
+        toast.error(data.error || "Failed to send message. Please try again.")
+      }
+    } catch (error) {
+      console.error('Error sending message:', error)
+      toast.error("Failed to send message. Please check your connection and try again.")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   const faqs = [
     {
@@ -89,26 +165,83 @@ export function HelpModal({ open, onOpenChange }: HelpModalProps) {
                   <Mail className="w-5 h-5 text-primary mt-1" />
                   <div>
                     <h4 className="font-semibold mb-1">Email Support</h4>
-                    <p className="text-sm text-muted-foreground">support@archerhealth.com</p>
+                    <p className="text-sm text-muted-foreground">antonioarcher.dev@gmail.com</p>
                     <p className="text-xs text-muted-foreground mt-1">We typically respond within 24 hours</p>
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-3">
+              <form onSubmit={handleSubmit} className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="name">Name <span className="text-muted-foreground">(optional)</span></Label>
+                    <Input 
+                      id="name" 
+                      placeholder="Your name (optional)" 
+                      value={formData.name}
+                      onChange={(e) => handleInputChange("name", e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="email">Email <span className="text-muted-foreground">(optional)</span></Label>
+                    <Input 
+                      id="email" 
+                      type="email"
+                      placeholder="your@email.com (optional)" 
+                      value={formData.email}
+                      onChange={(e) => handleInputChange("email", e.target.value)}
+                    />
+                  </div>
+                </div>
                 <div>
                   <Label htmlFor="subject">Subject</Label>
-                  <Input id="subject" placeholder="What do you need help with?" />
+                  <Input 
+                    id="subject" 
+                    placeholder="What do you need help with?"
+                    value={formData.subject}
+                    onChange={(e) => handleInputChange("subject", e.target.value)}
+                    required
+                  />
                 </div>
                 <div>
                   <Label htmlFor="message">Message</Label>
-                  <Textarea id="message" placeholder="Describe your issue or question..." rows={5} />
+                  <Textarea 
+                    id="message" 
+                    placeholder="Describe your issue or question..." 
+                    rows={5}
+                    value={formData.message}
+                    onChange={(e) => handleInputChange("message", e.target.value)}
+                    required
+                  />
                 </div>
-                <Button className="w-full">
-                  <Mail className="w-4 h-4 mr-2" />
-                  Send Message
+                
+                {user && (
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="includeContact" 
+                      checked={includeContactInfo}
+                      onCheckedChange={(checked) => setIncludeContactInfo(checked as boolean)}
+                    />
+                    <Label htmlFor="includeContact" className="text-sm">
+                      Include my contact information (name and email)
+                    </Label>
+                  </div>
+                )}
+                
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="w-4 h-4 mr-2" />
+                      Send Message
+                    </>
+                  )}
                 </Button>
-              </div>
+              </form>
             </div>
           )}
         </ScrollArea>

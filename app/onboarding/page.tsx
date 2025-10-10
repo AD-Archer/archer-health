@@ -1,25 +1,173 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useStore } from "@/lib/store"
+import { useUser } from "@clerk/nextjs"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { User } from "@/app/data/data"
+
+interface UserProfile {
+  name?: string
+  email?: string
+  currentWeight?: number
+  goalWeight?: number
+  height?: number
+  heightFeet?: number
+  heightInches?: number
+  age?: number
+  gender?: "male" | "female" | "other"
+  activityLevel?: "sedentary" | "light" | "moderate" | "active" | "very-active"
+  goalType?: "lose" | "maintain" | "gain"
+  weeklyGoal?: number
+  units?: "imperial" | "metric"
+  timezone?: string
+  waterGoal?: number
+  waterGoalUnit?: string
+}
+
+// Timezone options
+const TIMEZONES = [
+  "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles",
+  "America/Anchorage", "Pacific/Honolulu", "Europe/London", "Europe/Paris",
+  "Europe/Berlin", "Asia/Tokyo", "Asia/Shanghai", "Asia/Kolkata",
+  "Australia/Sydney", "Pacific/Auckland", "America/Toronto", "America/Vancouver",
+  "America/Mexico_City", "America/Sao_Paulo", "Africa/Cairo", "Asia/Dubai"
+]
+
+// Weekly goal options based on goal type
+const getWeeklyGoalOptions = (goalType: string) => {
+  if (goalType === "lose") {
+    return [
+      { value: 0.5, label: "0.5 lbs per week (Safe & Sustainable)" },
+      { value: 1, label: "1 lb per week (Recommended)" },
+      { value: 1.5, label: "1.5 lbs per week (Aggressive)" },
+      { value: 2, label: "2 lbs per week (Very Aggressive)" }
+    ]
+  } else if (goalType === "gain") {
+    return [
+      { value: 0.5, label: "0.5 lbs per week (Slow & Steady)" },
+      { value: 1, label: "1 lb per week (Moderate)" },
+      { value: 1.5, label: "1.5 lbs per week (Fast)" },
+      { value: 2, label: "2 lbs per week (Very Fast)" }
+    ]
+  }
+  return []
+}
+
+// Auto-calculate water goal based on weight and activity level
+const calculateWaterGoal = (weight: number | undefined, units: string, activityLevel: string): number => {
+  if (!weight) return 0
+
+  // Base calculation: 1 oz per kg of body weight for imperial, 30ml per kg for metric
+  let baseWater: number
+  if (units === "imperial") {
+    // Convert lbs to kg for calculation
+    const weightKg = weight * 0.453592
+    baseWater = weightKg * 30 // 30ml per kg
+    // Convert to oz
+    baseWater = baseWater * 0.033814
+  } else {
+    baseWater = weight * 30 // 30ml per kg
+  }
+
+  // Activity level multiplier
+  const activityMultiplier = {
+    "sedentary": 1.0,
+    "light": 1.2,
+    "moderate": 1.4,
+    "active": 1.6,
+    "very-active": 1.8
+  }[activityLevel] || 1.0
+
+  return Math.round(baseWater * activityMultiplier)
+}
 
 export default function OnboardingPage() {
   const router = useRouter()
-  const { user, updateUser } = useStore()
-  const [formData, setFormData] = useState<Partial<User>>({ ...user })
-  const [waterUnit, setWaterUnit] = useState<string>(user.units === "imperial" ? "oz" : "ml")
+  const { user, isLoaded } = useUser()
+  const [formData, setFormData] = useState<UserProfile>({})
+  const [waterUnit, setWaterUnit] = useState<string>("oz")
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
 
-  const handleSave = () => {
-    updateUser({ ...formData, waterGoalUnit: waterUnit as User["waterGoalUnit"] })
-    router.push("/dashboard")
+  // Pre-fill with Clerk user data and auto-detect timezone
+  useEffect(() => {
+    if (isLoaded && user) {
+      // Auto-detect timezone
+      const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone
+      
+      setFormData({
+        name: user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.username || "",
+        email: user.primaryEmailAddress?.emailAddress || "",
+        timezone: TIMEZONES.includes(userTimezone) ? userTimezone : "America/New_York",
+        units: "imperial", // Default to imperial
+      })
+    }
+  }, [user, isLoaded])
+
+  // Auto-calculate water goal when weight or activity level changes
+  useEffect(() => {
+    if (formData.currentWeight && formData.activityLevel && formData.units) {
+      const calculatedWater = calculateWaterGoal(formData.currentWeight, formData.units, formData.activityLevel)
+      setFormData(prev => ({ ...prev, waterGoal: calculatedWater }))
+    }
+  }, [formData.currentWeight, formData.activityLevel, formData.units])
+
+  // Convert height when units change
+  useEffect(() => {
+    if (formData.units === "metric" && formData.heightFeet && formData.heightInches) {
+      // Convert feet/inches to cm
+      const totalInches = (formData.heightFeet * 12) + formData.heightInches
+      const cm = totalInches * 2.54
+      setFormData(prev => ({ ...prev, height: Math.round(cm) }))
+    } else if (formData.units === "imperial" && formData.height) {
+      // Convert cm to feet/inches
+      const totalInches = formData.height / 2.54
+      const feet = Math.floor(totalInches / 12)
+      const inches = Math.round(totalInches % 12)
+      setFormData(prev => ({ ...prev, heightFeet: feet, heightInches: inches }))
+    }
+  }, [formData.units])
+
+  const handleSave = async () => {
+    if (!isLoaded || !user) return
+
+    setIsLoading(true)
+    setError("")
+    try {
+      // Prepare data for API - convert height if needed
+      let finalData = { ...formData }
+      if (formData.units === "imperial" && formData.heightFeet && formData.heightInches) {
+        finalData.height = (formData.heightFeet * 12) + formData.heightInches
+      }
+
+      const response = await fetch('/api/user-profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...finalData,
+          waterGoalUnit: waterUnit,
+        }),
+      })
+
+      if (response.ok) {
+        router.push("/dashboard")
+      } else {
+        const errorData = await response.json().catch(() => ({}))
+        setError(errorData.error || `Failed to save profile (${response.status})`)
+      }
+    } catch (error) {
+      console.error('Error saving profile:', error)
+      setError('Network error. Please check your connection and try again.')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -54,50 +202,103 @@ export default function OnboardingPage() {
               </div>
               {/* Weight Section */}
               <div className="space-y-2">
-                <Label htmlFor="currentWeight">Current Weight</Label>
+                <Label htmlFor="currentWeight">Current Weight ({formData.units === "imperial" ? "lbs" : "kg"})</Label>
                 <Input
                   id="currentWeight"
                   type="number"
                   value={formData.currentWeight ?? ""}
-                  onChange={(e) => setFormData({ ...formData, currentWeight: Number(e.target.value) })}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData({ ...formData, currentWeight: value === "" ? undefined : Number(value) });
+                  }}
+                  placeholder={`Enter weight in ${formData.units === "imperial" ? "pounds" : "kilograms"}`}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="goalWeight">Goal Weight</Label>
+                <Label htmlFor="goalWeight">Goal Weight ({formData.units === "imperial" ? "lbs" : "kg"})</Label>
                 <Input
                   id="goalWeight"
                   type="number"
                   value={formData.goalWeight ?? ""}
-                  onChange={(e) => setFormData({ ...formData, goalWeight: Number(e.target.value) })}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData({ ...formData, goalWeight: value === "" ? undefined : Number(value) });
+                  }}
+                  placeholder={`Enter goal weight in ${formData.units === "imperial" ? "pounds" : "kilograms"}`}
                 />
               </div>
-              {/* Height, Age, Gender */}
+              {/* Height Section */}
               <div className="space-y-2">
-                <Label htmlFor="height">Height</Label>
-                <Input
-                  id="height"
-                  type="number"
-                  value={formData.height ?? ""}
-                  onChange={(e) => setFormData({ ...formData, height: Number(e.target.value) })}
-                />
+                <Label htmlFor="height">Height ({formData.units === "imperial" ? "feet & inches" : "cm"})</Label>
+                {formData.units === "imperial" ? (
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <Input
+                        id="heightFeet"
+                        type="number"
+                        value={formData.heightFeet ?? ""}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setFormData({ ...formData, heightFeet: value === "" ? undefined : Number(value) });
+                        }}
+                        placeholder="Feet"
+                        min="1"
+                        max="8"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <Input
+                        id="heightInches"
+                        type="number"
+                        value={formData.heightInches ?? ""}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setFormData({ ...formData, heightInches: value === "" ? undefined : Number(value) });
+                        }}
+                        placeholder="Inches"
+                        min="0"
+                        max="11"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <Input
+                    id="height"
+                    type="number"
+                    value={formData.height ?? ""}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFormData({ ...formData, height: value === "" ? undefined : Number(value) });
+                    }}
+                    placeholder="Enter height in centimeters"
+                  />
+                )}
               </div>
+              {/* Age */}
               <div className="space-y-2">
                 <Label htmlFor="age">Age</Label>
                 <Input
                   id="age"
                   type="number"
                   value={formData.age ?? ""}
-                  onChange={(e) => setFormData({ ...formData, age: Number(e.target.value) })}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData({ ...formData, age: value === "" ? undefined : Number(value) });
+                  }}
+                  placeholder="Enter your age"
+                  min="13"
+                  max="120"
                 />
               </div>
+              {/* Gender */}
               <div className="space-y-2">
                 <Label htmlFor="gender">Gender</Label>
                 <Select
                   value={formData.gender || "other"}
-                  onValueChange={(value) => setFormData({ ...formData, gender: value as User["gender"] })}
+                  onValueChange={(value: "male" | "female" | "other") => setFormData({ ...formData, gender: value })}
                 >
                   <SelectTrigger id="gender">
-                    <SelectValue />
+                    <SelectValue placeholder="Select your gender" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="male">Male</SelectItem>
@@ -111,29 +312,29 @@ export default function OnboardingPage() {
                 <Label htmlFor="activityLevel">Activity Level</Label>
                 <Select
                   value={formData.activityLevel || "moderate"}
-                  onValueChange={(value) => setFormData({ ...formData, activityLevel: value as User["activityLevel"] })}
+                  onValueChange={(value: "sedentary" | "light" | "moderate" | "active" | "very-active") => setFormData({ ...formData, activityLevel: value })}
                 >
                   <SelectTrigger id="activityLevel">
-                    <SelectValue />
+                    <SelectValue placeholder="Select your activity level" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="sedentary">Sedentary</SelectItem>
-                    <SelectItem value="light">Light</SelectItem>
-                    <SelectItem value="moderate">Moderate</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="very-active">Very Active</SelectItem>
+                    <SelectItem value="sedentary">Sedentary (little to no exercise)</SelectItem>
+                    <SelectItem value="light">Light (light exercise 1-3 days/week)</SelectItem>
+                    <SelectItem value="moderate">Moderate (moderate exercise 3-5 days/week)</SelectItem>
+                    <SelectItem value="active">Active (hard exercise 6-7 days/week)</SelectItem>
+                    <SelectItem value="very-active">Very Active (very hard exercise & physical job)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              {/* Goal Type & Weekly Goal */}
+              {/* Goal Type */}
               <div className="space-y-2">
                 <Label htmlFor="goalType">Goal Type</Label>
                 <Select
                   value={formData.goalType || "maintain"}
-                  onValueChange={(value) => setFormData({ ...formData, goalType: value as User["goalType"] })}
+                  onValueChange={(value: "lose" | "maintain" | "gain") => setFormData({ ...formData, goalType: value })}
                 >
                   <SelectTrigger id="goalType">
-                    <SelectValue />
+                    <SelectValue placeholder="Select your goal" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="lose">Lose Weight</SelectItem>
@@ -142,52 +343,78 @@ export default function OnboardingPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="weeklyGoal">Weekly Goal (lbs/week)</Label>
-                <Input
-                  id="weeklyGoal"
-                  type="number"
-                  value={formData.weeklyGoal ?? ""}
-                  onChange={(e) => setFormData({ ...formData, weeklyGoal: Number(e.target.value) })}
-                />
-              </div>
-              {/* Units & Timezone */}
+              {/* Weekly Goal - only show for lose/gain goals */}
+              {(formData.goalType === "lose" || formData.goalType === "gain") && (
+                <div className="space-y-2">
+                  <Label htmlFor="weeklyGoal">Weekly Goal ({formData.units === "imperial" ? "lbs" : "kg"}/week)</Label>
+                  <Select
+                    value={formData.weeklyGoal?.toString() || ""}
+                    onValueChange={(value) => setFormData({ ...formData, weeklyGoal: Number(value) })}
+                  >
+                    <SelectTrigger id="weeklyGoal">
+                      <SelectValue placeholder="Select your weekly goal" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {getWeeklyGoalOptions(formData.goalType).map((option) => (
+                        <SelectItem key={option.value} value={option.value.toString()}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {/* Units */}
               <div className="space-y-2">
                 <Label htmlFor="units">Units</Label>
                 <Select
                   value={formData.units || "imperial"}
-                  onValueChange={(value) => setFormData({ ...formData, units: value as User["units"] })}
+                  onValueChange={(value: "imperial" | "metric") => setFormData({ ...formData, units: value })}
                 >
                   <SelectTrigger id="units">
-                    <SelectValue />
+                    <SelectValue placeholder="Select your preferred units" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="imperial">Imperial (lbs, inches, oz)</SelectItem>
+                    <SelectItem value="imperial">Imperial (lbs, feet/inches, oz)</SelectItem>
                     <SelectItem value="metric">Metric (kg, cm, ml)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+              {/* Timezone */}
               <div className="space-y-2">
                 <Label htmlFor="timezone">Timezone</Label>
-                <Input
-                  id="timezone"
-                  type="text"
+                <Select
                   value={formData.timezone || ""}
-                  onChange={(e) => setFormData({ ...formData, timezone: e.target.value })}
-                />
+                  onValueChange={(value) => setFormData({ ...formData, timezone: value })}
+                >
+                  <SelectTrigger id="timezone">
+                    <SelectValue placeholder="Select your timezone" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TIMEZONES.map((tz) => (
+                      <SelectItem key={tz} value={tz}>
+                        {tz.replace('_', ' ')}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              {/* Water Goal */}
+              {/* Water Goal - Auto-calculated */}
               <div className="space-y-2">
-                <Label htmlFor="waterGoal">Water Goal</Label>
+                <Label htmlFor="waterGoal">Daily Water Goal (Auto-calculated)</Label>
                 <div className="flex gap-2">
                   <Input
                     id="waterGoal"
                     type="number"
                     value={formData.waterGoal ?? ""}
-                    onChange={(e) => setFormData({ ...formData, waterGoal: Number(e.target.value) })}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFormData({ ...formData, waterGoal: value === "" ? undefined : Number(value) });
+                    }}
+                    placeholder="Auto-calculated based on your weight and activity"
                   />
                   <Select value={waterUnit} onValueChange={setWaterUnit}>
-                    <SelectTrigger id="waterUnit">
+                    <SelectTrigger id="waterUnit" className="w-20">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -196,10 +423,19 @@ export default function OnboardingPage() {
                     </SelectContent>
                   </Select>
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  Calculated based on your weight ({formData.currentWeight} {formData.units === "imperial" ? "lbs" : "kg"}) 
+                  and activity level. You can adjust this value if needed.
+                </p>
               </div>
               {/* Save Button */}
-              <Button className="w-full mt-6" onClick={handleSave}>
-                Finish Setup
+              {error && (
+                <div className="text-sm text-red-600 bg-red-50 p-3 rounded border border-red-200">
+                  {error}
+                </div>
+              )}
+              <Button className="w-full mt-6" onClick={handleSave} disabled={isLoading}>
+                {isLoading ? "Saving..." : "Finish Setup"}
               </Button>
             </div>
           </ScrollArea>

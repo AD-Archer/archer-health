@@ -1,0 +1,158 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                       String   @id @default(cuid())
+  clerkId                  String   @unique
+  username                 String?  @unique
+  name                     String?
+  email                    String   @unique
+  avatar                   String?
+  currentWeight            Float?
+  goalWeight               Float?
+  height                   Float?
+  age                      Int?
+  gender                   String?
+  activityLevel            String?
+  goalType                 String?
+  weeklyGoal               Float?
+  dailyCalorieGoal         Int?
+  macroGoals               Json?
+  waterGoal                Float?
+  waterGoalUnit            String?  @default("oz")
+  isPremium                Boolean  @default(false)
+  units                    String   @default("imperial")
+  timezone                 String   @default("America/New_York")
+  archerAquaConnectionCode String?  @unique
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  // Relations
+  foods       Food[]
+  meals       Meal[]
+  workouts    Workout[]
+  goals       Goal[]
+  mealEntries MealEntry[]
+
+  privacySettings PrivacySettings?
+  notificationSettings NotificationSettings?
+}
+
+model Food {
+  id          String   @id @default(cuid())
+  name        String
+  calories    Float
+  protein     Float
+  carbs       Float
+  fat         Float
+  fiber       Float?
+  sugar       Float?
+  sodium      Float?
+  servingSize String
+  servingUnit String
+  isPublic    Boolean  @default(true)
+  createdBy   String
+  category    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  User        User?    @relation(fields: [userId], references: [id])
+  userId      String?
+}
+
+model Meal {
+  id            String   @id @default(cuid())
+  name          String
+  foods         Json // Array of { foodId: string, servings: number }
+  totalCalories Float
+  totalProtein  Float
+  totalCarbs    Float
+  totalFat      Float
+  isPublic      Boolean  @default(true)
+  createdBy     String
+  imageUrl      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  User          User?    @relation(fields: [userId], references: [id])
+  userId        String?
+}
+
+model MealEntry {
+  id        String   @id @default(cuid())
+  date      String
+  mealType  String
+  foodId    String?
+  mealId    String?
+  servings  Float
+  calories  Float
+  protein   Float
+  carbs     Float
+  fat       Float
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  User      User?    @relation(fields: [userId], references: [id])
+  userId    String?
+}
+
+model Workout {
+  id             String   @id @default(cuid())
+  name           String
+  type           String
+  duration       Int // minutes
+  caloriesBurned Float
+  date           String
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  User           User?    @relation(fields: [userId], references: [id])
+  userId         String?
+}
+
+model Goal {
+  id        String   @id @default(cuid())
+  type      String
+  name      String
+  target    Float
+  current   Float
+  unit      String
+  deadline  String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  User      User?    @relation(fields: [userId], references: [id])
+  userId    String?
+}
+
+model PrivacySettings {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  profileVisibility Boolean @default(true)
+  activitySharing  Boolean @default(false)
+  dataCollection   Boolean @default(true)
+  user            User     @relation(fields: [userId], references: [id])
+}
+
+model NotificationSettings {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  mealReminders     Boolean  @default(true)
+  workoutReminders  Boolean  @default(true)
+  goalAchievements  Boolean  @default(true)
+  weeklyReports     Boolean  @default(true)
+  emailNotifications Boolean @default(false)
+  pushNotifications Boolean  @default(true)
+  user              User     @relation(fields: [userId], references: [id])
+}

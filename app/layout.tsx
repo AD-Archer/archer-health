@@ -1,7 +1,9 @@
 import type React from "react"
+import { Toaster } from "sonner"
 import type { Metadata } from "next"
 import { Inter, Poppins } from "next/font/google"
 import "./globals.css"
+import { ClerkProvider } from '@clerk/nextjs'
 
 const inter = Inter({
   subsets: ["latin"],
@@ -87,80 +89,86 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${poppins.variable}`}> 
-      <head>
-        {/* Site-level structured data */}
-        <script
-          id="website-json-ld"
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              '@context': 'https://schema.org',
-              '@type': 'WebSite',
-              name: 'Archer Health',
-              url: baseUrl,
-              potentialAction: {
-                '@type': 'SearchAction',
-                target: 'https://www.google.com/search?q={search_term_string}',
-                'query-input': 'required name=search_term_string',
-              },
-              sameAs: [
-                'https://github.com/ad-archer',
-                'https://www.linkedin.com/in/antonio-archer',
-                'https://twitter.com/ad_archer_',
-                'https://www.youtube.com/@ad-archer',
-                'https://www.instagram.com/Antonio_DArcher',
-              ],
-            }),
-          }}
-        />
-        <script
-          id="json-ld"
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              '@context': 'https://schema.org',
-              '@type': 'Person',
-              name: 'Antonio Archer',
-              url: 'https://www.antonioarcher.com',
-              image: `${baseUrl}/logo.webp`,
-              jobTitle: 'Software Developer & DevOps Engineer',
-              worksFor: {
-                '@type': 'Organization',
-                name: 'Self-employed',
-              },
-              address: {
-                '@type': 'PostalAddress',
-                addressLocality: 'Philadelphia',
-                addressRegion: 'PA',
-                addressCountry: 'US',
-              },
-              sameAs: [
-                'https://github.com/ad-archer',
-                'https://www.linkedin.com/in/antonio-archer',
-                'https://twitter.com/ad_archer_',
-                'https://www.linktr.ee/adarcher',
-                'https://www.adarcher.app',
-                'https://www.youtube.com/@ad-archer',
-                'https://www.instagram.com/Antonio_DArcher',
-              ],
-            }),
-          }}
-        />
-        <link rel="manifest" href="/site.webmanifest" />
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="icon" href="/favicon-96x96.png" sizes="96x96" type="image/png" />
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <link rel="icon" href="/web-app-manifest-192x192.png" sizes="192x192" type="image/png" />
-        <link rel="icon" href="/web-app-manifest-512x512.png" sizes="512x512" type="image/png" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <meta name="theme-color" content="#4c5f39" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="Archer Health" />
-      </head>
-      <body className="font-sans antialiased">{children}</body>
-    </html>
+    <ClerkProvider>
+      <html lang="en" className={`${inter.variable} ${poppins.variable}`}> 
+        <head>
+          {/* Site-level structured data */}
+          <script
+            id="website-json-ld"
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify({
+                '@context': 'https://schema.org',
+                '@type': 'WebSite',
+                name: 'Archer Health',
+                url: baseUrl,
+                potentialAction: {
+                  '@type': 'SearchAction',
+                  target: 'https://www.google.com/search?q={search_term_string}',
+                  'query-input': 'required name=search_term_string',
+                },
+                sameAs: [
+                  'https://github.com/ad-archer',
+                  'https://www.linkedin.com/in/antonio-archer',
+                  'https://twitter.com/ad_archer_',
+                  'https://www.youtube.com/@ad-archer',
+                  'https://www.instagram.com/Antonio_DArcher',
+                ],
+              }),
+            }}
+          />
+          <script
+            id="json-ld"
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify({
+                '@context': 'https://schema.org',
+                '@type': 'Person',
+                name: 'Antonio Archer',
+                url: 'https://www.antonioarcher.com',
+                image: `${baseUrl}/logo.webp`,
+                jobTitle: 'Software Developer & DevOps Engineer',
+                worksFor: {
+                  '@type': 'Organization',
+                  name: 'Self-employed',
+                },
+                address: {
+                  '@type': 'PostalAddress',
+                  addressLocality: 'Philadelphia',
+                  addressRegion: 'PA',
+                  addressCountry: 'US',
+                },
+                sameAs: [
+                  'https://github.com/ad-archer',
+                  'https://www.linkedin.com/in/antonio-archer',
+                  'https://twitter.com/ad_archer_',
+                  'https://www.linktr.ee/adarcher',
+                  'https://www.adarcher.app',
+                  'https://www.youtube.com/@ad-archer',
+                  'https://www.instagram.com/Antonio_DArcher',
+                ],
+              }),
+            }}
+          />
+          <link rel="manifest" href="/site.webmanifest" />
+          <link rel="icon" href="/favicon.ico" sizes="any" />
+          <link rel="icon" href="/favicon-96x96.png" sizes="96x96" type="image/png" />
+          <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+          <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+          <link rel="icon" href="/web-app-manifest-192x192.png" sizes="192x192" type="image/png" />
+          <link rel="icon" href="/web-app-manifest-512x512.png" sizes="512x512" type="image/png" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <meta name="theme-color" content="#4c5f39" />
+          <meta name="apple-mobile-web-app-capable" content="yes" />
+          <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+          <meta name="apple-mobile-web-app-title" content="Archer Health" />
+        </head>
+        <body className="font-sans antialiased">
+          {children}
+          {/* Toast notifications */}
+          <Toaster position="bottom-right" duration={500} />
+        </body>
+      </html>
+    </ClerkProvider>
   )
 }

@@ -1,39 +1,85 @@
 "use client"
 
-import type React from "react"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useSignUp, useUser } from "@clerk/nextjs"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
-import { Mail } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
 
 export default function SignupPage() {
   const router = useRouter()
-  const [name, setName] = useState("")
+  const { user, isLoaded: userLoaded } = useUser()
+  const { signUp, setActive, isLoaded } = useSignUp()
+  const [username, setUsername] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+  const [agreeToTerms, setAgreeToTerms] = useState(false)
+  const [agreeToPrivacy, setAgreeToPrivacy] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
 
-  const handleSignup = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (password !== confirmPassword) {
-      console.log("Passwords do not match")
-      return
+  // Redirect if user is already signed in
+  useEffect(() => {
+    if (userLoaded && user) {
+      router.push("/dashboard")
     }
-    console.log("Signup attempt:", email)
-    // Signup logic would go here
-    router.push("/onboarding")
+  }, [user, userLoaded, router])
+
+  // Show loading while checking auth status
+  if (!userLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">Loading...</div>
+      </div>
+    )
   }
 
-  const handleGoogleSignup = () => {
-    console.log("Google signup attempt")
-    // Google OAuth logic would go here
-    router.push("/onboarding")
+  // Don't render if user is already signed in
+  if (user) {
+    return null
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!agreeToTerms || !agreeToPrivacy) {
+      setError("Please agree to the terms and privacy policy")
+      return
+    }
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match")
+      return
+    }
+
+    if (!isLoaded) return
+
+    setIsLoading(true)
+    setError("")
+
+    try {
+      const result = await signUp.create({
+        emailAddress: email,
+        password,
+        username,
+      })
+
+      if (result.status === "complete") {
+        await setActive({ session: result.createdSessionId })
+        router.push("/onboarding")
+      } else {
+        console.log("Signup incomplete", result)
+      }
+    } catch (err: any) {
+      setError(err.errors?.[0]?.message || "An error occurred")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -49,15 +95,15 @@ export default function SignupPage() {
           <CardDescription>Start your health journey with Archer Health</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <form onSubmit={handleSignup} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
+              <Label htmlFor="username">Username</Label>
               <Input
-                id="name"
+                id="username"
                 type="text"
-                placeholder="John Doe"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                placeholder="Choose a username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 required
               />
             </div>
@@ -94,24 +140,45 @@ export default function SignupPage() {
                 required
               />
             </div>
-            <Button type="submit" className="w-full">
-              Create Account
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="terms" 
+                checked={agreeToTerms}
+                onCheckedChange={(checked: boolean) => setAgreeToTerms(checked)}
+              />
+              <label htmlFor="terms" className="text-sm">
+                I agree to the{" "}
+                <Link href="/terms" className="text-primary hover:underline">
+                  Terms of Service
+                </Link>
+              </label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="privacy" 
+                checked={agreeToPrivacy}
+                onCheckedChange={(checked: boolean) => setAgreeToPrivacy(checked)}
+              />
+              <label htmlFor="privacy" className="text-sm">
+                I agree to the{" "}
+                <Link href="/privacy" className="text-primary hover:underline">
+                  Privacy Policy
+                </Link>
+              </label>
+            </div>
+
+            {error && (
+              <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
+                {error}
+              </div>
+            )}
+
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "Creating Account..." : "Create Account"}
             </Button>
           </form>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <Separator />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
-            </div>
-          </div>
-
-          <Button type="button" variant="outline" className="w-full bg-transparent" onClick={handleGoogleSignup}>
-            <Mail className="w-4 h-4 mr-2" />
-            Sign up with Google
-          </Button>
 
           <p className="text-center text-sm text-muted-foreground">
             Already have an account?{" "}

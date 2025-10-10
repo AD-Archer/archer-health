@@ -1,35 +1,35 @@
 "use client"
 
-import type React from "react"
-
-import { useState } from "react"
-import Link from "next/link"
+import { useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { useUser, SignInButton } from "@clerk/nextjs"
+import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
-import { Mail } from "lucide-react"
 
 export default function LoginPage() {
   const router = useRouter()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
+  const { user, isLoaded } = useUser()
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault()
-    console.log("Login attempt:", email)
-    // Login logic would go here
-    router.push("/dashboard")
+  // Redirect if user is already signed in
+  useEffect(() => {
+    if (isLoaded && user) {
+      router.push("/dashboard")
+    }
+  }, [user, isLoaded, router])
+
+  // Show loading while checking auth status
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">Loading...</div>
+      </div>
+    )
   }
 
-  const handleGoogleLogin = () => {
-    console.log("Google login attempt")
-    // Google OAuth logic would go here
-    router.push("/dashboard")
+  // Don't render if user is already signed in
+  if (user) {
+    return null
   }
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
       <Card className="w-full max-w-md">
@@ -43,52 +43,11 @@ export default function LoginPage() {
           <CardDescription>Sign in to your Archer Health account</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
-                <Link href="/forgot-password" className="text-sm text-primary hover:underline">
-                  Forgot password?
-                </Link>
-              </div>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-            <Button type="submit" className="w-full">
+          <SignInButton mode="modal">
+            <button className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 rounded-md">
               Sign In
-            </Button>
-          </form>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <Separator />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
-            </div>
-          </div>
-
-          <Button type="button" variant="outline" className="w-full bg-transparent" onClick={handleGoogleLogin}>
-            <Mail className="w-4 h-4 mr-2" />
-            Sign in with Google
-          </Button>
+            </button>
+          </SignInButton>
 
           <p className="text-center text-sm text-muted-foreground">
             Don't have an account?{" "}

@@ -1,36 +1,71 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Archer Health
 
-## Getting Started
+## Environment Setup
 
-First, run the development server:
+Copy the example environment file and configure your settings:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env.local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### SMTP Configuration
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The contact form on the privacy page requires SMTP configuration to send emails. Configure the following environment variables:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```env
+# SMTP Configuration for Contact Form
+SMTP_HOST="smtp.gmail.com"
+SMTP_PORT="587"
+SMTP_SECURE="false"
+SMTP_USER="your-email@gmail.com"
+SMTP_PASS="your-app-password"
+SMTP_FROM="noreply@archerhealth.com"
 
-## Learn More
+# Contact Email (where contact form messages are sent)
+CONTACT_EMAIL="antonioarcher.dev@gmail.com"
+```
 
-To learn more about Next.js, take a look at the following resources:
+#### Gmail Setup
+1. Enable 2-factor authentication on your Gmail account
+2. Generate an App Password: https://support.google.com/accounts/answer/185833
+3. Use your Gmail address as `SMTP_USER`
+4. Use the App Password as `SMTP_PASS`
+5. **Important**: Make sure "Less secure app access" is disabled (2FA + App Password is the secure way)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+#### Troubleshooting Email Issues
+If emails aren't being received:
+1. Check your spam/junk folder
+2. Verify the App Password is correct and hasn't expired
+3. Try regenerating the App Password
+4. Check Gmail security settings for blocked sign-ins
+5. Test with the `/api/test-smtp` endpoint to verify connection
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+#### Testing SMTP Configuration
+You can test your SMTP setup by visiting `http://localhost:3000/api/test-smtp` in your browser. This will verify the connection without sending an actual email.
 
-## Deploy on Vercel
+#### Other Email Providers
+The SMTP configuration works with most email providers. Common settings:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **Gmail**: `smtp.gmail.com:587`
+- **Outlook**: `smtp-mail.outlook.com:587`
+- **Yahoo**: `smtp.mail.yahoo.com:587`
+- **SendGrid**: `smtp.sendgrid.net:587`
+- **Mailgun**: `smtp.mailgun.org:587`
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Error Handling
+
+The application includes comprehensive error handling:
+
+### Global Error Page (`app/error.tsx`)
+- Catches unexpected application errors
+- Automatically sends email notifications to admin in production
+- Shows detailed error information in development mode
+- Provides user-friendly error recovery options
+
+### 404 Not Found Page (`app/not-found.tsx`)
+- Custom 404 page with professional design
+- Includes error reporting form for users to report broken links
+- Sends detailed reports to admin email with context information
+
+Both error pages use the same SMTP configuration as the contact form for sending notifications.
+

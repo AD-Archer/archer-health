@@ -2,22 +2,24 @@
 
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { ChevronRight, Bell, Lock, HelpCircle, LogOut, Shield, FileText } from "lucide-react"
 import Link from "next/link"
+import { useClerk } from "@clerk/nextjs"
 import { NotificationSettingsModal } from "@/components/notification-settings-modal"
 import { PrivacySecurityModal } from "@/components/privacy-security-modal"
 import { HelpModal } from "@/components/help-modal"
 
 export function SettingsSection() {
+  const { signOut } = useClerk()
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [privacyOpen, setPrivacyOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false)
 
   const handleLogout = () => {
-    if (confirm("Are you sure you want to log out?")) {
-      // In a real app, this would clear auth tokens and redirect
-      window.location.href = "/login"
-    }
+    signOut({ redirectUrl: "/" })
   }
 
   return (
@@ -29,7 +31,7 @@ export function SettingsSection() {
         <CardContent className="space-y-2">
           <button
             onClick={() => setNotificationsOpen(true)}
-            className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors w-full"
+            className="flex items-center justify-between p-3 sm:p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors w-full"
           >
             <div className="flex items-center gap-3">
               <Bell className="w-5 h-5" />
@@ -40,7 +42,7 @@ export function SettingsSection() {
 
           <button
             onClick={() => setPrivacyOpen(true)}
-            className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors w-full"
+            className="flex items-center justify-between p-3 sm:p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors w-full"
           >
             <div className="flex items-center gap-3">
               <Lock className="w-5 h-5" />
@@ -51,7 +53,7 @@ export function SettingsSection() {
 
           <Link
             href="/privacy"
-            className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors"
+            className="flex items-center justify-between p-3 sm:p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors"
           >
             <div className="flex items-center gap-3">
               <Shield className="w-5 h-5" />
@@ -62,7 +64,7 @@ export function SettingsSection() {
 
           <Link
             href="/terms"
-            className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors"
+            className="flex items-center justify-between p-3 sm:p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors"
           >
             <div className="flex items-center gap-3">
               <FileText className="w-5 h-5" />
@@ -73,7 +75,7 @@ export function SettingsSection() {
 
           <button
             onClick={() => setHelpOpen(true)}
-            className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors w-full"
+            className="flex items-center justify-between p-3 sm:p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors w-full"
           >
             <div className="flex items-center gap-3">
               <HelpCircle className="w-5 h-5" />
@@ -83,8 +85,8 @@ export function SettingsSection() {
           </button>
 
           <button
-            onClick={handleLogout}
-            className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors w-full text-error"
+            onClick={() => setLogoutConfirmOpen(true)}
+            className="flex items-center justify-between p-3 sm:p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors w-full text-error"
           >
             <div className="flex items-center gap-3">
               <LogOut className="w-5 h-5" />
@@ -98,6 +100,25 @@ export function SettingsSection() {
       <NotificationSettingsModal open={notificationsOpen} onOpenChange={setNotificationsOpen} />
       <PrivacySecurityModal open={privacyOpen} onOpenChange={setPrivacyOpen} />
       <HelpModal open={helpOpen} onOpenChange={setHelpOpen} />
+
+      <Dialog open={logoutConfirmOpen} onOpenChange={setLogoutConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Log Out</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to log out? You will need to sign in again to access your account.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLogoutConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleLogout}>
+              Log Out
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

@@ -5,7 +5,10 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { Shield, Eye, Lock, Download } from "lucide-react"
+import { UserProfile } from "@clerk/nextjs"
 import { useState } from "react"
+import { useEffect } from "react"
+import { toast } from "sonner"
 
 interface PrivacySecurityModalProps {
   open: boolean
@@ -18,9 +21,55 @@ export function PrivacySecurityModal({ open, onOpenChange }: PrivacySecurityModa
     activitySharing: false,
     dataCollection: true,
   })
+  const [isLoading, setIsLoading] = useState(false)
+  // Removed account modal logic
 
+  // Load settings from backend when modal opens
+  useEffect(() => {
+    if (open) {
+      setIsLoading(true)
+      fetch("/api/privacy-settings")
+        .then(res => res.json())
+        .then(data => {
+          if (data.settings) {
+            setSettings({
+              profileVisibility: !!data.settings.profileVisibility,
+              activitySharing: !!data.settings.activitySharing,
+              dataCollection: !!data.settings.dataCollection,
+            })
+          }
+        })
+        .catch(() => {
+          toast.error("Failed to load privacy settings.")
+        })
+        .finally(() => setIsLoading(false))
+    }
+  }, [open])
+
+  // Save settings to backend
+  const saveSettings = async (newSettings: typeof settings) => {
+    setIsLoading(true)
+    try {
+      const res = await fetch("/api/privacy-settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newSettings),
+      })
+      if (res.ok) {
+        toast.success("Privacy settings saved!")
+      } else {
+        toast.error("Failed to save privacy settings.")
+      }
+    } catch {
+      toast.error("Failed to save privacy settings.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
   const toggleSetting = (key: keyof typeof settings) => {
-    setSettings({ ...settings, [key]: !settings[key] })
+    const updated = { ...settings, [key]: !settings[key] }
+    setSettings(updated)
+    saveSettings(updated)
   }
 
   return (
@@ -31,6 +80,9 @@ export function PrivacySecurityModal({ open, onOpenChange }: PrivacySecurityModa
         </DialogHeader>
 
         <div className="space-y-6 py-4">
+          {isLoading && (
+            <div className="text-center py-2 text-muted-foreground text-sm">Loading...</div>
+          )}
           {/* Privacy Settings */}
           <div className="space-y-4">
             <h3 className="font-semibold text-lg flex items-center gap-2">
@@ -63,31 +115,7 @@ export function PrivacySecurityModal({ open, onOpenChange }: PrivacySecurityModa
             </div>
           </div>
 
-          {/* Security Actions */}
-          <div className="space-y-4 border-t pt-4">
-            <h3 className="font-semibold text-lg flex items-center gap-2">
-              <Shield className="w-5 h-5" />
-              Security
-            </h3>
-
-            <Button
-              variant="outline"
-              className="w-full justify-start bg-transparent"
-              onClick={() => alert("Password change functionality coming soon!")}
-            >
-              <Lock className="w-4 h-4 mr-2" />
-              Change Password
-            </Button>
-
-            <Button
-              variant="outline"
-              className="w-full justify-start bg-transparent"
-              onClick={() => alert("2FA setup coming soon!")}
-            >
-              <Shield className="w-4 h-4 mr-2" />
-              Enable Two-Factor Authentication
-            </Button>
-          </div>
+          {/* Security Actions removed. Account management is now on the profile page. */}
 
           {/* Data Management */}
           <div className="space-y-4 border-t pt-4">
