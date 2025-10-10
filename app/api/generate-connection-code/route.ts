@@ -28,3 +28,29 @@ export async function POST(_request: NextRequest) {
 		);
 	}
 }
+
+export async function DELETE(_request: NextRequest) {
+	try {
+		const { userId } = await auth();
+		if (!userId) {
+			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+		}
+
+		// Clear the connection code and Archer Aqua user ID
+		await prisma.user.update({
+			where: { clerkId: userId },
+			data: {
+				archerAquaConnectionCode: null,
+				archerAquaUserId: null,
+			},
+		});
+
+		return NextResponse.json({ success: true });
+	} catch (error) {
+		console.error("Error clearing connection:", error);
+		return NextResponse.json(
+			{ error: "Internal server error" },
+			{ status: 500 },
+		);
+	}
+}

@@ -7,13 +7,13 @@ export async function POST(request: NextRequest) {
 
 		if (!connectionCode || !archerAquaUserId) {
 			return NextResponse.json(
-				{ error: "Missing required fields" },
+				{ error: "Missing connectionCode or archerAquaUserId" },
 				{ status: 400 },
 			);
 		}
 
-		// Find user by connection code
-		const user = await prisma.user.findUnique({
+		// Find user with the connection code
+		const user = await prisma.user.findFirst({
 			where: { archerAquaConnectionCode: connectionCode },
 		});
 
@@ -24,14 +24,13 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
-		// Link accounts (you might want to add a field for archerAquaUserId)
-		// For now, just mark as connected
+		// Update user with Archer Aqua user ID
 		await prisma.user.update({
 			where: { id: user.id },
-			data: { archerAquaConnectionCode: null }, // Clear code after use
+			data: { archerAquaUserId },
 		});
 
-		return NextResponse.json({ success: true, archerHealthUserId: user.id });
+		return NextResponse.json({ success: true });
 	} catch (error) {
 		console.error("Error redeeming connection code:", error);
 		return NextResponse.json(

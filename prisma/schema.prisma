@@ -37,6 +37,7 @@ model User {
   units                    String   @default("imperial")
   timezone                 String   @default("America/New_York")
   archerAquaConnectionCode String?  @unique
+  archerAquaUserId         String?
   createdAt                DateTime @default(now())
   updatedAt                DateTime @updatedAt
 
@@ -47,6 +48,9 @@ model User {
   goals       Goal[]
   mealEntries MealEntry[]
   weightHistory WeightHistory[]
+  hydrationLogs HydrationLog[]
+  dailyGoals    DailyGoal[]
+  drinks       Drink[]
 
   privacySettings PrivacySettings?
   notificationSettings NotificationSettings?
@@ -168,4 +172,57 @@ model NotificationSettings {
   emailNotifications Boolean @default(false)
   pushNotifications Boolean  @default(true)
   user              User     @relation(fields: [userId], references: [id])
+}
+
+model HydrationLog {
+  id                  String   @id @default(cuid())
+  userId              String
+  drinkId             String?
+  label               String?
+  amount              Float   // in ml
+  hydrationMultiplier Float   @default(1.0)
+  effectiveAmount     Float?  // calculated effective hydration in ml
+  date                DateTime @default(now())
+  consumedAtLocal     DateTime?
+  timezone            String?
+  dailyKey            String? // YYYY-MM-DD format for user's timezone
+  source              String? @default("manual")
+  externalId          String? @unique // For syncing with external services
+  notes               String?
+  metadata            Json?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  user                User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  drink               Drink?  @relation(fields: [drinkId], references: [id])
+}
+
+model DailyGoal {
+  id        String   @id @default(cuid())
+  userId    String
+  date      String   // YYYY-MM-DD format
+  goalMl    Float    // Goal in milliliters
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+}
+
+model Drink {
+  id                  String   @id @default(cuid())
+  userId              String?
+  name                String
+  type                String?  @default("beverage")
+  hydrationMultiplier Float    @default(1.0)
+  defaultVolumeMl     Float?
+  colorHex            String?
+  source              String?  @default("custom")
+  metadata            Json?
+  isArchived          Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  user                User?    @relation(fields: [userId], references: [id])
+  hydrationLogs       HydrationLog[]
+
+  @@unique([userId, name])
 }

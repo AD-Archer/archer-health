@@ -4,6 +4,7 @@ import { useClerk } from "@clerk/nextjs";
 import {
 	Bell,
 	ChevronRight,
+	Droplets,
 	FileText,
 	HelpCircle,
 	Lock,
@@ -12,6 +13,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { ArcherAquaModal } from "@/components/archer-aqua-modal";
 import { HelpModal } from "@/components/help-modal";
 import { NotificationSettingsModal } from "@/components/notification-settings-modal";
 import { PrivacySecurityModal } from "@/components/privacy-security-modal";
@@ -32,6 +34,7 @@ export function SettingsSection() {
 	const [privacyOpen, setPrivacyOpen] = useState(false);
 	const [helpOpen, setHelpOpen] = useState(false);
 	const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+	const [archerAquaOpen, setArcherAquaOpen] = useState(false);
 
 	const handleLogout = () => {
 		signOut({ redirectUrl: "/" });
@@ -100,6 +103,17 @@ export function SettingsSection() {
 					</button>
 
 					<button
+						onClick={() => setArcherAquaOpen(true)}
+						className="flex items-center justify-between p-3 sm:p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors w-full"
+					>
+						<div className="flex items-center gap-3">
+							<Droplets className="w-5 h-5" />
+							<span className="font-medium">Archer Aqua</span>
+						</div>
+						<ChevronRight className="w-5 h-5 text-muted-foreground" />
+					</button>
+
+					<button
 						onClick={() => setLogoutConfirmOpen(true)}
 						className="flex items-center justify-between p-3 sm:p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors w-full text-error"
 					>
@@ -118,6 +132,7 @@ export function SettingsSection() {
 			/>
 			<PrivacySecurityModal open={privacyOpen} onOpenChange={setPrivacyOpen} />
 			<HelpModal open={helpOpen} onOpenChange={setHelpOpen} />
+			<ArcherAquaModal open={archerAquaOpen} onOpenChange={setArcherAquaOpen} />
 
 			<Dialog open={logoutConfirmOpen} onOpenChange={setLogoutConfirmOpen}>
 				<DialogContent>
