@@ -15,31 +15,29 @@ datasource db {
 }
 
 model User {
-  id                       String   @id @default(cuid())
-  clerkId                  String   @unique
-  username                 String?  @unique
-  name                     String?
-  email                    String   @unique
-  avatar                   String?
-  currentWeight            Float? // stored in kg
-  goalWeight               Float? // stored in kg
-  height                   Float? // stored in cm
-  age                      Int?
-  gender                   String?
-  activityLevel            String?
-  goalType                 String?
-  weeklyGoal               Float? // stored in kg/week
-  dailyCalorieGoal         Int?
-  macroGoals               Json?
-  waterGoal                Float?
-  waterGoalUnit            String?  @default("oz")
-  isPremium                Boolean  @default(false)
-  units                    String   @default("imperial")
-  timezone                 String   @default("America/New_York")
-  archerAquaConnectionCode String?  @unique
-  archerAquaUserId         String?
-  createdAt                DateTime @default(now())
-  updatedAt                DateTime @updatedAt
+  id          String   @id @default(cuid())
+  clerkId     String   @unique
+  username    String?  @unique
+  name        String?
+  email       String   @unique
+  avatar      String?
+  currentWeight Float?
+  goalWeight  Float?
+  height      Float?
+  age         Int?
+  gender      String?
+  activityLevel String?
+  goalType    String?
+  weeklyGoal  Float?
+  dailyCalorieGoal Int?
+  macroGoals  Json?
+  waterGoal   Float?
+  waterGoalUnit String? @default("oz")
+  isPremium   Boolean  @default(false)
+  units       String   @default("imperial")
+  timezone    String   @default("America/New_York")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Relations
   foods       Food[]
@@ -47,21 +45,6 @@ model User {
   workouts    Workout[]
   goals       Goal[]
   mealEntries MealEntry[]
-  weightHistory WeightHistory[]
-  hydrationLogs HydrationLog[]
-  dailyGoals    DailyGoal[]
-  drinks       Drink[]
-
-  privacySettings PrivacySettings?
-  notificationSettings NotificationSettings?
-}
-
-model WeightHistory {
-  id        String   @id @default(cuid())
-  userId    String
-  weight    Float   // stored in kg
-  date      DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Food {
@@ -81,148 +64,60 @@ model Food {
   category    String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  User        User?    @relation(fields: [userId], references: [id])
-  userId      String?
-  mealEntries MealEntry[]
 }
 
 model Meal {
-  id            String   @id @default(cuid())
-  name          String
-  foods         Json // Array of { foodId: string, servings: number }
+  id          String   @id @default(cuid())
+  name        String
+  foods       Json     // Array of { foodId: string, servings: number }
   totalCalories Float
-  totalProtein  Float
-  totalCarbs    Float
-  totalFat      Float
-  isPublic      Boolean  @default(true)
-  createdBy     String
-  imageUrl      String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  User          User?    @relation(fields: [userId], references: [id])
-  userId        String?
-  mealEntries   MealEntry[]
+  totalProtein Float
+  totalCarbs  Float
+  totalFat    Float
+  isPublic    Boolean  @default(true)
+  createdBy   String
+  imageUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model MealEntry {
-  id        String   @id @default(cuid())
-  date      String
-  mealType  String
-  foodId    String?
-  mealId    String?
-  servings  Float
-  calories  Float
-  protein   Float
-  carbs     Float
-  fat       Float
-  notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  User      User?    @relation(fields: [userId], references: [id])
-  userId    String?
-  Food      Food?    @relation(fields: [foodId], references: [id])
-  Meal      Meal?    @relation(fields: [mealId], references: [id])
+  id          String   @id @default(cuid())
+  date        String
+  mealType    String
+  foodId      String?
+  mealId      String?
+  servings    Float
+  calories    Float
+  protein     Float
+  carbs       Float
+  fat         Float
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Workout {
-  id             String   @id @default(cuid())
-  name           String
-  type           String
-  duration       Int // minutes
+  id          String   @id @default(cuid())
+  name        String
+  type        String
+  duration    Int      // minutes
   caloriesBurned Float
-  date           String
-  notes          String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  User           User?    @relation(fields: [userId], references: [id])
-  userId         String?
+  date        String
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Goal {
-  id        String   @id @default(cuid())
-  type      String
-  name      String
-  target    Float
-  current   Float
-  unit      String
-  deadline  String?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  User      User?    @relation(fields: [userId], references: [id])
-  userId    String?
-}
-
-model PrivacySettings {
-  id              String   @id @default(cuid())
-  userId          String   @unique
-  profileVisibility Boolean @default(true)
-  activitySharing  Boolean @default(false)
-  dataCollection   Boolean @default(true)
-  user            User     @relation(fields: [userId], references: [id])
-}
-
-model NotificationSettings {
-  id                String   @id @default(cuid())
-  userId            String   @unique
-  mealReminders     Boolean  @default(true)
-  workoutReminders  Boolean  @default(true)
-  goalAchievements  Boolean  @default(true)
-  weeklyReports     Boolean  @default(true)
-  emailNotifications Boolean @default(false)
-  pushNotifications Boolean  @default(true)
-  user              User     @relation(fields: [userId], references: [id])
-}
-
-model HydrationLog {
-  id                  String   @id @default(cuid())
-  userId              String
-  drinkId             String?
-  label               String?
-  amount              Float   // in ml
-  hydrationMultiplier Float   @default(1.0)
-  effectiveAmount     Float?  // calculated effective hydration in ml
-  date                DateTime @default(now())
-  consumedAtLocal     DateTime?
-  timezone            String?
-  dailyKey            String? // YYYY-MM-DD format for user's timezone
-  source              String? @default("manual")
-  externalId          String? @unique // For syncing with external services
-  notes               String?
-  metadata            Json?
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-  user                User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  drink               Drink?  @relation(fields: [drinkId], references: [id])
-}
-
-model DailyGoal {
-  id        String   @id @default(cuid())
-  userId    String
-  date      String   // YYYY-MM-DD format
-  goalMl    Float    // Goal in milliliters
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, date])
-}
-
-model Drink {
-  id                  String   @id @default(cuid())
-  userId              String?
-  name                String
-  type                String?  @default("beverage")
-  hydrationMultiplier Float    @default(1.0)
-  defaultVolumeMl     Float?
-  colorHex            String?
-  source              String?  @default("custom")
-  metadata            Json?
-  isArchived          Boolean  @default(false)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-  user                User?    @relation(fields: [userId], references: [id])
-  hydrationLogs       HydrationLog[]
-
-  @@unique([userId, name])
+  id          String   @id @default(cuid())
+  type        String
+  name        String
+  target      Float
+  current     Float
+  unit        String
+  deadline    String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
