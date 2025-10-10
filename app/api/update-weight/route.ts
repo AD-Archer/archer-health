@@ -14,8 +14,8 @@ export async function POST(request: NextRequest) {
 
 		if (
 			typeof weight !== "number" ||
-			isNaN(weight) ||
-			!isFinite(weight) ||
+			Number.isNaN(weight) ||
+			!Number.isFinite(weight) ||
 			weight <= 0
 		) {
 			return NextResponse.json(

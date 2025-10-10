@@ -3,7 +3,7 @@
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import type { User } from "@/app/data/data";
+import type { Goal, MealEntry, User } from "@/app/data/data";
 import { DesktopNav } from "@/components/desktop-nav";
 import { MobileNav } from "@/components/mobile-nav";
 import { useStore } from "@/lib/store";
@@ -26,7 +26,11 @@ interface UserProfile {
 	name: string | null;
 	email: string;
 	dailyCalorieGoal: number | null;
-	macroGoals: any;
+	macroGoals: {
+		protein: number;
+		carbs: number;
+		fat: number;
+	};
 	waterGoal: number | null;
 	weeklyGoal: number | null;
 	goalType: string | null;
@@ -35,7 +39,7 @@ interface UserProfile {
 
 interface TodaysMeals {
 	totalCalories: number;
-	mealEntries: any[];
+	mealEntries: MealEntry[];
 	date: string;
 }
 
@@ -55,17 +59,6 @@ interface TodaysMacros {
 	date: string;
 }
 
-interface Goal {
-	id: string;
-	type: string;
-	name: string;
-	target: number;
-	current: number;
-	unit: string;
-	deadline: string | null;
-	isActive: boolean;
-}
-
 export default function DashboardPage() {
 	const router = useRouter();
 	const { user, isLoaded } = useUser();
@@ -74,7 +67,7 @@ export default function DashboardPage() {
 	const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 	const [todaysMeals, setTodaysMeals] = useState<TodaysMeals | null>(null);
 	const [todaysMacros, setTodaysMacros] = useState<TodaysMacros | null>(null);
-	const [goals, setGoals] = useState<Goal[]>([]);
+	const [_goals, setGoals] = useState<Goal[]>([]);
 
 	useEffect(() => {
 		if (isLoaded && user) {
@@ -175,7 +168,7 @@ export default function DashboardPage() {
 				<div className="grid gap-6 md:grid-cols-3">
 					<MacrosCard userProfile={userProfile} todaysMacros={todaysMacros} />
 					<NutrientsCard
-						userProfile={userProfile}
+						_userProfile={userProfile}
 						todaysMacros={todaysMacros}
 					/>
 					<WeightUpdateCard

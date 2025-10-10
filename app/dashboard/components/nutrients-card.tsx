@@ -14,7 +14,7 @@ interface UserProfile {
 	name: string | null;
 	email: string;
 	dailyCalorieGoal: number | null;
-	macroGoals: any;
+	macroGoals: unknown;
 	waterGoal: number | null;
 	weeklyGoal: number | null;
 	goalType: string | null;
@@ -38,12 +38,12 @@ interface TodaysMacros {
 }
 
 interface NutrientsCardProps {
-	userProfile: UserProfile | null;
+	_userProfile: UserProfile | null;
 	todaysMacros: TodaysMacros | null;
 }
 
 export function NutrientsCard({
-	userProfile,
+	_userProfile,
 	todaysMacros,
 }: NutrientsCardProps) {
 	// Use real data from API or fallback to zeros

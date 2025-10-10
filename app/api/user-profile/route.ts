@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { type NextRequest, NextResponse } from "next/server";
 import { prisma } from "../../../lib/prisma";
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
 	try {
 		const { userId } = await auth();
 		if (!userId) {
@@ -67,14 +67,14 @@ export async function PUT(request: NextRequest) {
 		const userUnits = units || currentUser?.units || "imperial";
 
 		// Weights are already in kg from frontend conversion - just validate and round
-		const convertToKg = (weight: any) => {
+		const convertToKg = (weight: unknown) => {
 			if (!weight) return undefined;
 			const weightNum = parseFloat(weight.toString());
 			return Math.round(weightNum); // Round to nearest whole kg
 		};
 
 		// Convert weekly goal to kg/week (already in kg from frontend)
-		const convertWeeklyGoalToKg = (goal: any) => {
+		const convertWeeklyGoalToKg = (goal: unknown) => {
 			if (!goal) return undefined;
 			const goalNum = parseFloat(goal.toString());
 			return Math.round(goalNum); // Round to nearest whole kg
@@ -87,7 +87,7 @@ export async function PUT(request: NextRequest) {
 				currentWeight: convertToKg(currentWeight),
 				goalWeight: convertToKg(goalWeight),
 				height: height ? parseFloat(height.toString()) : undefined,
-				age: age ? parseInt(age.toString()) : undefined,
+				age: age ? parseInt(age.toString(), 10) : undefined,
 				gender,
 				activityLevel,
 				goalType,
@@ -104,7 +104,7 @@ export async function PUT(request: NextRequest) {
 				currentWeight: convertToKg(currentWeight),
 				goalWeight: convertToKg(goalWeight),
 				height: height ? parseFloat(height.toString()) : undefined,
-				age: age ? parseInt(age.toString()) : undefined,
+				age: age ? parseInt(age.toString(), 10) : undefined,
 				gender,
 				activityLevel,
 				goalType,

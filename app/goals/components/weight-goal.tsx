@@ -7,7 +7,7 @@ import { useUnitConversion } from "@/lib/use-unit-conversion";
 
 export function WeightGoal() {
 	const user = useStore((state) => state.user);
-	const { formatWeight, getDisplayWeight } = useUnitConversion();
+	const { getDisplayWeight } = useUnitConversion();
 
 	const currentDisplay = getDisplayWeight(user.currentWeight, user.units);
 	const goalDisplay = getDisplayWeight(user.goalWeight, user.units);

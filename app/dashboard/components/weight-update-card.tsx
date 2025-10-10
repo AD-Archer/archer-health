@@ -52,7 +52,7 @@ export function WeightUpdateCard({
 
 	const handleWeightUpdate = async () => {
 		const newWeight = parseFloat(weightInput);
-		if (isNaN(newWeight) || newWeight <= 0) return;
+		if (Number.isNaN(newWeight) || newWeight <= 0) return;
 
 		setIsUpdating(true);
 		try {

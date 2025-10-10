@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { type NextRequest, NextResponse } from "next/server";
 import { prisma } from "../../../lib/prisma";
 
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
 	try {
 		const { userId } = await auth();
 		if (!userId) {
@@ -20,14 +20,14 @@ export async function POST(request: NextRequest) {
 		const user = await prisma.user.upsert({
 			where: { clerkId: userId },
 			update: {
-				name: clerkUser.first_name + " " + clerkUser.last_name,
+				name: `${clerkUser.first_name} ${clerkUser.last_name}`,
 				email: clerkUser.email_addresses[0]?.email_address,
 				avatar: clerkUser.image_url,
 				username: clerkUser.username || null,
 			},
 			create: {
 				clerkId: userId,
-				name: clerkUser.first_name + " " + clerkUser.last_name,
+				name: `${clerkUser.first_name} ${clerkUser.last_name}`,
 				email: clerkUser.email_addresses[0]?.email_address,
 				avatar: clerkUser.image_url,
 				username: clerkUser.username || null,

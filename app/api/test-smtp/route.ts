@@ -29,14 +29,14 @@ export async function GET() {
 			port: process.env.SMTP_PORT,
 			secure: process.env.SMTP_SECURE,
 			user: process.env.SMTP_USER
-				? "***" + process.env.SMTP_USER.slice(-4)
+				? `***${process.env.SMTP_USER.slice(-4)}`
 				: "not set",
 		});
 
 		// Create transporter with SMTP configuration
 		const transporter = nodemailer.createTransport({
 			host: process.env.SMTP_HOST,
-			port: parseInt(process.env.SMTP_PORT || "587"),
+			port: parseInt(process.env.SMTP_PORT || "587", 10),
 			secure: process.env.SMTP_SECURE === "true",
 			auth: {
 				user: process.env.SMTP_USER,

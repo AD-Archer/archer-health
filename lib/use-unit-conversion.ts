@@ -7,7 +7,7 @@ export function useUnitConversion() {
 	const LBS_TO_KG = 0.453592;
 	const KG_TO_LBS = 2.20462;
 	const CM_TO_INCHES = 2.54;
-	const INCHES_TO_CM = 1 / 2.54;
+	const _INCHES_TO_CM = 1 / 2.54;
 
 	return useMemo(
 		() => ({

@@ -129,7 +129,6 @@ export function NotificationsModal({
 				return Bell;
 			case "progress":
 				return TrendingUp;
-			case "info":
 			default:
 				return Info;
 		}
@@ -203,9 +202,9 @@ export function NotificationsModal({
 							{notifications.map((notification) => {
 								const Icon = getNotificationIcon(notification.type);
 								return (
-									<div
+									<button
 										key={notification.id}
-										className={`p-4 rounded-lg border cursor-pointer transition-colors ${
+										className={`w-full text-left p-4 rounded-lg border cursor-pointer transition-colors ${
 											notification.read
 												? "bg-background border-border hover:bg-muted/50"
 												: "bg-primary/5 border-primary/20 hover:bg-primary/10"
@@ -213,6 +212,7 @@ export function NotificationsModal({
 										onClick={() =>
 											!notification.read && markAsRead(notification.id)
 										}
+										disabled={notification.read}
 									>
 										<div className="flex gap-3">
 											<div className="flex-shrink-0">
@@ -237,7 +237,7 @@ export function NotificationsModal({
 												</div>
 											)}
 										</div>
-									</div>
+									</button>
 								);
 							})}
 						</div>

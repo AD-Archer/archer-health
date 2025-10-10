@@ -3,7 +3,7 @@
 import { useUser } from "@clerk/nextjs";
 import { AlertTriangle, Home, RefreshCw } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -18,31 +18,22 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
 	const { user } = useUser();
 	const [includeContactInfo, setIncludeContactInfo] = useState(false);
 
-	useEffect(() => {
-		// Report error to admin in production
-		if (process.env.NODE_ENV === "production") {
-			reportErrorToAdmin(error, includeContactInfo);
-		}
-
-		// Log error details
-		console.error("Application Error:", error);
-	}, [error, includeContactInfo]);
-
-	const reportErrorToAdmin = async (error: Error, includeContact: boolean) => {
-		try {
-			const userInfo =
-				includeContact && user
-					? `
+	const reportErrorToAdmin = useCallback(
+		async (error: Error, includeContact: boolean) => {
+			try {
+				const userInfo =
+					includeContact && user
+						? `
 User Information:
 -----------------
 Name: ${user.fullName || user.firstName || "Anonymous"}
 ${user.primaryEmailAddress?.emailAddress ? `Email: ${user.primaryEmailAddress.emailAddress}` : ""}
 `.trim()
-					: "";
+						: "";
 
-			const errorReport = {
-				subject: "Archer Health - Application Error Report",
-				message: `
+				const errorReport = {
+					subject: "Archer Health - Application Error Report",
+					message: `
 Application Error Report
 ========================
 
@@ -58,25 +49,37 @@ Name: ${error.name}
 Message: ${error.message}
 Stack: ${error.stack}
 
-Error Digest: ${(error as any).digest || "N/A"}
+Error Digest: ${(error as { digest?: string }).digest || "N/A"}
 
 Please investigate this error immediately.
         `,
-				name: "Archer Health Error Reporter",
-				email: "system@archerhealth.com",
-			};
+					name: "Archer Health Error Reporter",
+					email: "system@archerhealth.com",
+				};
 
-			await fetch("/api/contact", {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify(errorReport),
-			});
-		} catch (reportError) {
-			console.error("Failed to report error to admin:", reportError);
+				await fetch("/api/contact", {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify(errorReport),
+				});
+			} catch (reportError) {
+				console.error("Failed to report error to admin:", reportError);
+			}
+		},
+		[user],
+	);
+
+	useEffect(() => {
+		// Report error to admin in production
+		if (process.env.NODE_ENV === "production") {
+			reportErrorToAdmin(error, includeContactInfo);
 		}
-	};
+
+		// Log error details
+		console.error("Application Error:", error);
+	}, [error, includeContactInfo, reportErrorToAdmin]);
 
 	return (
 		<div className="min-h-screen bg-background flex items-center justify-center p-4">

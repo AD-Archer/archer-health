@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useStore } from "@/lib/store";
 
 export function MacroGoals() {
-	const user = useStore((state) => state.user);
+	const _user = useStore((state) => state.user);
 
 	return (
 		<Card>
