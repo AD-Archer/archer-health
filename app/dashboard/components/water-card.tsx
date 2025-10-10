@@ -4,6 +4,7 @@ import { Droplets } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { useStore } from "@/lib/store";
 
 interface HydrationLog {
 	id: string;
@@ -20,6 +21,7 @@ export function WaterCard() {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [waterGoal, setWaterGoal] = useState(64); // Default 64 oz
+	const { refetchTrigger } = useStore();
 
 	useEffect(() => {
 		const fetchHydrationData = async () => {
@@ -44,7 +46,7 @@ export function WaterCard() {
 		};
 
 		fetchHydrationData();
-	}, []);
+	}, [refetchTrigger]);
 
 	// Fetch user's water goal (from Archer Aqua if connected, otherwise local)
 	useEffect(() => {
@@ -90,7 +92,7 @@ export function WaterCard() {
 			}
 		};
 		fetchUserProfileAndGoal();
-	}, []);
+	}, [refetchTrigger]);
 
 	// Calculate today's total
 	const today = new Date().toISOString().split("T")[0];

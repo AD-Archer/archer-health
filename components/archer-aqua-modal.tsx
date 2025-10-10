@@ -11,6 +11,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
+import { useStore } from "@/lib/store";
 
 // Input/Label previously used for redeem UI which is removed; keep modal minimal.
 
@@ -31,6 +32,7 @@ export function ArcherAquaModal({ open, onOpenChange }: ArcherAquaModalProps) {
 	const [isSyncing, setIsSyncing] = useState(false);
 	const [isDisconnecting, setIsDisconnecting] = useState(false);
 	const [syncSuccess, setSyncSuccess] = useState(false);
+	const { triggerRefetch } = useStore();
 
 	useEffect(() => {
 		if (open) {
@@ -42,7 +44,7 @@ export function ArcherAquaModal({ open, onOpenChange }: ArcherAquaModalProps) {
 		try {
 			const response = await fetch("/api/user-profile");
 			const data = await response.json();
-			if (data.user?.archerAquaConnectionCode) {
+			if (data.user?.archerAquaUserId) {
 				setConnectionStatus("connected");
 			} else {
 				setConnectionStatus("not-connected");
@@ -83,6 +85,7 @@ export function ArcherAquaModal({ open, onOpenChange }: ArcherAquaModalProps) {
 			const data = await response.json();
 			if (response.ok) {
 				setSyncSuccess(true);
+				triggerRefetch();
 			} else {
 				setError(data.error || "Failed to sync data");
 			}

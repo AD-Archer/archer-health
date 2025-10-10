@@ -60,6 +60,14 @@ export async function POST(_request: NextRequest) {
 			);
 			console.log(`Stats response status: ${statsResponse.status}`);
 			if (statsResponse.status === 401) {
+				// Clear the connection since it's invalid
+				await prisma.user.update({
+					where: { id: user.id },
+					data: {
+						archerAquaConnectionCode: null,
+						archerAquaUserId: null,
+					},
+				});
 				return NextResponse.json(
 					{
 						error:
@@ -162,6 +170,48 @@ export async function POST(_request: NextRequest) {
 			}
 		} catch (error) {
 			console.error("Error syncing daily goals:", error);
+		}
+
+		// Upload water goal from Archer Health to Archer Aqua
+		try {
+			const userProfile = await prisma.user.findUnique({
+				where: { id: user.id },
+				select: { waterGoal: true, waterGoalUnit: true },
+			});
+			if (userProfile?.waterGoal) {
+				const goalInMl =
+					userProfile.waterGoalUnit === "oz"
+						? userProfile.waterGoal * 29.5735
+						: userProfile.waterGoal;
+				const today = new Date().toISOString().split("T")[0];
+				const goalPayload = { goalMl: goalInMl };
+				console.log(`Uploading water goal to Aqua: ${goalPayload.goalMl}ml`);
+				const uploadGoalResponse = await fetch(
+					`${AQUA_BASE_URL}/api/users/${user.archerAquaUserId}/hydration/goals/daily?date=${today}`,
+					{
+						method: "POST",
+						headers,
+						body: JSON.stringify(goalPayload),
+					},
+				);
+				if (uploadGoalResponse.status === 401) {
+					return NextResponse.json(
+						{
+							error:
+								"Authentication failed with Archer Aqua. Your connection may have expired. Please disconnect and reconnect your accounts.",
+						},
+						{ status: 401 },
+					);
+				}
+				if (!uploadGoalResponse.ok) {
+					const errorText = await uploadGoalResponse.text();
+					console.error(`Failed to upload water goal: ${errorText}`);
+				} else {
+					console.log("Successfully uploaded water goal to Archer Aqua");
+				}
+			}
+		} catch (error) {
+			console.error("Error uploading water goal:", error);
 		}
 
 		// Upload local hydration logs to Archer Aqua

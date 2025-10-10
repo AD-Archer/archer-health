@@ -64,7 +64,7 @@ interface TodaysMacros {
 export default function DashboardPage() {
 	const router = useRouter();
 	const { user, isLoaded } = useUser();
-	const { updateUser } = useStore();
+	const { updateUser, refetchTrigger } = useStore();
 	const [isCheckingProfile, setIsCheckingProfile] = useState(true);
 	const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 	const [todaysMeals, setTodaysMeals] = useState<TodaysMeals | null>(null);
@@ -140,7 +140,7 @@ export default function DashboardPage() {
 			// Not authenticated, redirect to login
 			router.push("/login");
 		}
-	}, [isLoaded, user, updateUser, router]);
+	}, [isLoaded, user, updateUser, router, refetchTrigger]);
 
 	// Show loading while checking profile
 	if (!isLoaded || isCheckingProfile) {

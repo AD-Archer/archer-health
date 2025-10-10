@@ -21,6 +21,7 @@ interface AppState {
 	goals: Goal[];
 	mealEntries: MealEntry[];
 	waterIntake: number;
+	refetchTrigger: number;
 
 	// Actions
 	updateUser: (user: Partial<User>) => void;
@@ -32,6 +33,7 @@ interface AppState {
 	addMealEntry: (entry: MealEntry) => void;
 	removeMealEntry: (id: string) => void;
 	updateWaterIntake: (amount: number) => void;
+	triggerRefetch: () => void;
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -42,6 +44,7 @@ export const useStore = create<AppState>((set) => ({
 	goals: mockGoals,
 	mealEntries: [],
 	waterIntake: 0,
+	refetchTrigger: 0,
 
 	updateUser: (userData) =>
 		set((state) => ({
@@ -84,4 +87,6 @@ export const useStore = create<AppState>((set) => ({
 		})),
 
 	updateWaterIntake: (amount) => set({ waterIntake: amount }),
+	triggerRefetch: () =>
+		set((state) => ({ refetchTrigger: state.refetchTrigger + 1 })),
 }));

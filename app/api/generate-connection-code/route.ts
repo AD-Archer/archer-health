@@ -29,8 +29,28 @@ export async function POST(_request: NextRequest) {
 	}
 }
 
-export async function DELETE(_request: NextRequest) {
+export async function DELETE(request: NextRequest) {
 	try {
+		const { searchParams } = new URL(request.url);
+		const connectionCode = searchParams.get("connectionCode");
+
+		if (connectionCode) {
+			// Called from Archer Aqua to clear connection
+			const user = await prisma.user.findFirst({
+				where: { archerAquaConnectionCode: connectionCode },
+			});
+			if (user) {
+				await prisma.user.update({
+					where: { id: user.id },
+					data: {
+						archerAquaConnectionCode: null,
+						archerAquaUserId: null,
+					},
+				});
+			}
+			return NextResponse.json({ success: true });
+		}
+
 		const { userId } = await auth();
 		if (!userId) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
