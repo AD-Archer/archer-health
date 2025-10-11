@@ -1,7 +1,7 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -82,59 +82,58 @@ export function EditProfileModal({
 
 	// Fetch user data when modal opens
 	useEffect(() => {
+		const fetchUserData = async () => {
+			setIsLoadingData(true);
+			try {
+				const response = await fetch("/api/user-profile");
+				if (response.ok) {
+					const userData = await response.json();
+					const dbUser = userData.user || {};
+					const userUnits = dbUser.units || user.units || "imperial";
+					setFormData({
+						currentWeight:
+							getDisplayWeight(dbUser.currentWeight, userUnits) ?? "",
+						goalWeight: getDisplayWeight(dbUser.goalWeight, userUnits) ?? "",
+						height: dbUser.height ?? user.height ?? "",
+						heightFeet:
+							userUnits === "imperial" && dbUser.height
+								? Math.floor(dbUser.height / 2.54 / 12)
+								: "",
+						heightInches:
+							userUnits === "imperial" && dbUser.height
+								? Math.round((dbUser.height / 2.54) % 12)
+								: "",
+						age: dbUser.age ?? user.age ?? "",
+						gender: dbUser.gender ?? user.gender ?? "other",
+						goalType: dbUser.goalType ?? user.goalType ?? "maintain",
+						weeklyGoal: dbUser.weeklyGoal
+							? userUnits === "imperial"
+								? Math.round(dbUser.weeklyGoal * 2.20462)
+								: Math.round(dbUser.weeklyGoal)
+							: (user.weeklyGoal ?? ""),
+						units: dbUser.units ?? user.units ?? "imperial",
+						timezone: dbUser.timezone ?? user.timezone ?? "",
+						// Removed email and username from editable fields
+						name:
+							(typeof clerkUser?.fullName === "string"
+								? clerkUser.fullName
+								: `${clerkUser?.firstName ?? ""} ${clerkUser?.lastName ?? ""}`.trim()) ||
+							dbUser.name ||
+							user.name ||
+							"",
+					});
+				}
+			} catch (error) {
+				console.error("Failed to fetch user data:", error);
+			} finally {
+				setIsLoadingData(false);
+			}
+		};
+
 		if (open && clerkUser) {
 			fetchUserData();
 		}
-	}, [open, clerkUser]);
-
-	const fetchUserData = async () => {
-		setIsLoadingData(true);
-		try {
-			const response = await fetch("/api/user-profile");
-			if (response.ok) {
-				const userData = await response.json();
-				const dbUser = userData.user || {};
-				const userUnits = dbUser.units || user.units || "imperial";
-				setFormData({
-					currentWeight:
-						getDisplayWeight(dbUser.currentWeight, userUnits) ?? "",
-					goalWeight: getDisplayWeight(dbUser.goalWeight, userUnits) ?? "",
-					height: dbUser.height ?? user.height ?? "",
-					heightFeet:
-						userUnits === "imperial" && dbUser.height
-							? Math.floor(dbUser.height / 2.54 / 12)
-							: "",
-					heightInches:
-						userUnits === "imperial" && dbUser.height
-							? Math.round((dbUser.height / 2.54) % 12)
-							: "",
-					age: dbUser.age ?? user.age ?? "",
-					gender: dbUser.gender ?? user.gender ?? "other",
-					goalType: dbUser.goalType ?? user.goalType ?? "maintain",
-					weeklyGoal: dbUser.weeklyGoal
-						? userUnits === "imperial"
-							? Math.round(dbUser.weeklyGoal * 2.20462)
-							: Math.round(dbUser.weeklyGoal)
-						: (user.weeklyGoal ?? ""),
-					units: dbUser.units ?? user.units ?? "imperial",
-					timezone: dbUser.timezone ?? user.timezone ?? "",
-					// Removed email and username from editable fields
-					name:
-						(typeof clerkUser?.fullName === "string"
-							? clerkUser.fullName
-							: `${clerkUser?.firstName ?? ""} ${clerkUser?.lastName ?? ""}`.trim()) ||
-						dbUser.name ||
-						user.name ||
-						"",
-				});
-			}
-		} catch (error) {
-			console.error("Failed to fetch user data:", error);
-		} finally {
-			setIsLoadingData(false);
-		}
-	};
-
+	}, [open, clerkUser, user, getDisplayWeight]);
 	const handleSave = async () => {
 		if (!clerkUser) return;
 
@@ -143,21 +142,22 @@ export function EditProfileModal({
 
 		try {
 			// Prepare data for API - convert height if needed
-			const finalData = { ...formData };
+			const finalData = {
+				...formData,
+				email: clerkUser?.primaryEmailAddress?.emailAddress,
+			};
 			// Always include name and email from Clerk user
 			if (clerkUser) {
-				(finalData as Record<string, any>).name =
+				finalData.name =
 					typeof clerkUser.fullName === "string"
 						? clerkUser.fullName
 						: `${clerkUser.firstName ?? ""} ${clerkUser.lastName ?? ""}`.trim();
-				(finalData as Record<string, any>).email =
-					clerkUser.primaryEmailAddress?.emailAddress;
 			}
 			if (formData.units === "imperial") {
 				// Convert feet/inches to total inches, then to cm
 				const feet = Number(formData.heightFeet);
 				const inches = Number(formData.heightInches);
-				if (!isNaN(feet) && !isNaN(inches)) {
+				if (!Number.isNaN(feet) && !Number.isNaN(inches)) {
 					finalData.height = (feet * 12 + inches) * 2.54; // Convert inches to cm
 				} else {
 					finalData.height = undefined;
@@ -165,7 +165,7 @@ export function EditProfileModal({
 			} else {
 				// Metric: height is already in cm
 				const cm = Number(formData.height);
-				finalData.height = !isNaN(cm) && cm > 0 ? cm : undefined;
+				finalData.height = !Number.isNaN(cm) && cm > 0 ? cm : undefined;
 			}
 
 			// Convert weights back to kg for storage

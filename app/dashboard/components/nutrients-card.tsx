@@ -14,7 +14,11 @@ interface UserProfile {
 	name: string | null;
 	email: string;
 	dailyCalorieGoal: number | null;
-	macroGoals: unknown;
+	macroGoals: {
+		protein: number;
+		carbs: number;
+		fat: number;
+	} | null;
 	waterGoal: number | null;
 	weeklyGoal: number | null;
 	goalType: string | null;

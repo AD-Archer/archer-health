@@ -17,7 +17,11 @@ interface UserProfile {
 	name: string | null;
 	email: string;
 	dailyCalorieGoal: number | null;
-	macroGoals: any;
+	macroGoals: {
+		protein: number;
+		carbs: number;
+		fat: number;
+	} | null;
 	waterGoal: number | null;
 	weeklyGoal: number | null;
 	goalType: string | null;
@@ -41,6 +45,10 @@ export function WeightUpdateCard({
 		)?.toString() || "",
 	);
 	const [isUpdating, setIsUpdating] = useState(false);
+	const [selectedDate, setSelectedDate] = useState(() => {
+		const today = new Date();
+		return today.toISOString().split("T")[0]; // YYYY-MM-DD format
+	});
 
 	useEffect(() => {
 		const displayWeight = getDisplayWeight(
@@ -67,7 +75,10 @@ export function WeightUpdateCard({
 				headers: {
 					"Content-Type": "application/json",
 				},
-				body: JSON.stringify({ weight: weightInKg }),
+				body: JSON.stringify({
+					weight: weightInKg,
+					date: selectedDate,
+				}),
 			});
 
 			if (response.ok) {
@@ -160,6 +171,24 @@ export function WeightUpdateCard({
 						<div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
 							{unitLabel}
 						</div>
+					</div>
+
+					{/* Date Input */}
+					<div className="space-y-2">
+						<label
+							htmlFor="weight-date"
+							className="text-sm font-medium text-muted-foreground"
+						>
+							Date
+						</label>
+						<Input
+							id="weight-date"
+							type="date"
+							value={selectedDate}
+							onChange={(e) => setSelectedDate(e.target.value)}
+							max={new Date().toISOString().split("T")[0]} // Can't select future dates
+							className="text-center border-2 focus:border-primary/50"
+						/>
 					</div>
 				</div>
 

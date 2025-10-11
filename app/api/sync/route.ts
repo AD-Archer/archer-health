@@ -88,7 +88,7 @@ export async function POST(_request: NextRequest) {
 						const existing = await prisma.hydrationLog.findFirst({
 							where: {
 								userId: user.id,
-								date: new Date(log.consumedAt),
+								consumedAt: new Date(log.consumedAt),
 								label: log.label,
 								source: "archer-aqua",
 							},
@@ -98,10 +98,10 @@ export async function POST(_request: NextRequest) {
 								data: {
 									userId: user.id,
 									label: log.label,
-									amount: log.volumeMl,
+									volumeMl: log.volumeMl,
 									hydrationMultiplier: log.hydrationMultiplier,
-									effectiveAmount: log.effectiveMl,
-									date: new Date(log.consumedAt),
+									effectiveMl: log.effectiveMl,
+									consumedAt: new Date(log.consumedAt),
 									consumedAtLocal: new Date(log.consumedAtLocal),
 									timezone: log.timezone,
 									dailyKey: log.dailyKey,
@@ -229,11 +229,11 @@ export async function POST(_request: NextRequest) {
 				const payload = {
 					label: log.label || "Water",
 					volume: {
-						value: log.amount,
+						value: log.volumeMl,
 						unit: "ml",
 					},
 					hydrationMultiplier: log.hydrationMultiplier,
-					consumedAt: log.date.toISOString(),
+					consumedAt: log.consumedAt.toISOString(),
 					timezone: log.timezone || "UTC",
 					source: "archer-health",
 					notes: log.notes,

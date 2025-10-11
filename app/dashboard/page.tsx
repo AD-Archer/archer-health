@@ -15,7 +15,6 @@ import { NutrientsCard } from "./components/nutrients-card";
 import { ProgressChart } from "./components/progress-chart";
 import { QuickStats } from "./components/quick-stats";
 import { TargetProgressCard } from "./components/target-progress-card";
-import { WaterCard } from "./components/water-card";
 import { WeightUpdateCard } from "./components/weight-update-card";
 
 interface UserProfile {
@@ -64,7 +63,7 @@ interface TodaysMacros {
 export default function DashboardPage() {
 	const router = useRouter();
 	const { user, isLoaded } = useUser();
-	const { updateUser, refetchTrigger } = useStore();
+	const { updateUser } = useStore();
 	const [isCheckingProfile, setIsCheckingProfile] = useState(true);
 	const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 	const [todaysMeals, setTodaysMeals] = useState<TodaysMeals | null>(null);
@@ -140,7 +139,7 @@ export default function DashboardPage() {
 			// Not authenticated, redirect to login
 			router.push("/login");
 		}
-	}, [isLoaded, user, updateUser, router, refetchTrigger]);
+	}, [isLoaded, user, updateUser, router]);
 
 	// Show loading while checking profile
 	if (!isLoaded || isCheckingProfile) {
@@ -164,15 +163,8 @@ export default function DashboardPage() {
 				<DashboardHeader />
 				<QuickStats userProfile={userProfile} todaysMeals={todaysMeals} />
 				<MotivationalNotes userProfile={userProfile} />
-				<ProgressChart userProfile={userProfile} />
-				<div className="grid gap-6 md:grid-cols-5">
-					<MacrosCard userProfile={userProfile} todaysMacros={todaysMacros} />
-					<NutrientsCard
-						_userProfile={userProfile}
-						todaysMacros={todaysMacros}
-					/>
-					<TargetProgressCard userProfile={userProfile} />
-					<WaterCard />
+				<div className="grid gap-6 md:grid-cols-2">
+					<ProgressChart />
 					<WeightUpdateCard
 						userProfile={userProfile}
 						onWeightUpdate={(newWeight: number) => {
@@ -182,6 +174,14 @@ export default function DashboardPage() {
 							updateUser({ currentWeight: newWeight } as Partial<User>);
 						}}
 					/>
+				</div>
+				<div className="grid gap-6 md:grid-cols-3">
+					<MacrosCard userProfile={userProfile} todaysMacros={todaysMacros} />
+					<NutrientsCard
+						_userProfile={userProfile}
+						todaysMacros={todaysMacros}
+					/>
+					<TargetProgressCard userProfile={userProfile} />
 				</div>
 				<MealSummary todaysMeals={todaysMeals} />
 			</main>

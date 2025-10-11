@@ -1,7 +1,7 @@
 "use client";
 
-import { UserProfile, useUser } from "@clerk/nextjs";
-import { Bell, Edit, HelpCircle, Lock, Settings } from "lucide-react";
+import { useUser } from "@clerk/nextjs";
+import { Bell, Edit, HelpCircle, Lock } from "lucide-react";
 import { useState } from "react";
 import { EditProfileModal } from "@/components/edit-profile-modal";
 import { HelpModal } from "@/components/help-modal";
@@ -9,19 +9,13 @@ import { NotificationsModal } from "@/components/notifications-modal";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-	Dialog,
-	DialogContent,
-	DialogHeader,
-	DialogTitle,
-} from "@/components/ui/dialog";
+
 
 export function ProfileHeader() {
 	const { user, isLoaded } = useUser();
 	const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 	const [isHelpOpen, setIsHelpOpen] = useState(false);
 	const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
-	// Removed modal state for account management
 
 	if (!isLoaded) {
 		return (

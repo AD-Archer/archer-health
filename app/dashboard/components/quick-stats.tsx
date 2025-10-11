@@ -1,6 +1,7 @@
 "use client";
 
-import { Activity, Droplet, Flame, Target } from "lucide-react";
+import { Activity, Flame, Target } from "lucide-react";
+import type { MealEntry } from "@/app/data/data";
 import { Card } from "@/components/ui/card";
 import { useUnitConversion } from "@/lib/use-unit-conversion";
 
@@ -14,7 +15,11 @@ interface UserProfile {
 	name: string | null;
 	email: string;
 	dailyCalorieGoal: number | null;
-	macroGoals: any;
+	macroGoals: {
+		protein: number;
+		carbs: number;
+		fat: number;
+	} | null;
 	waterGoal: number | null;
 	weeklyGoal: number | null;
 	goalType: string | null;
@@ -23,7 +28,7 @@ interface UserProfile {
 
 interface TodaysMeals {
 	totalCalories: number;
-	mealEntries: any[];
+	mealEntries: MealEntry[];
 	date: string;
 }
 
@@ -51,14 +56,6 @@ export function QuickStats({ userProfile, todaysMeals }: QuickStatsProps) {
 			bgColor: "bg-orange-50",
 		},
 		{
-			label: "Water",
-			value: "0oz", // TODO: implement water tracking
-			target: userProfile.waterGoal ? `${userProfile.waterGoal}oz` : "Not set",
-			icon: Droplet,
-			color: "text-blue-500",
-			bgColor: "bg-blue-50",
-		},
-		{
 			label: "Protein",
 			value: "0g", // TODO: calculate from meals
 			target: userProfile.macroGoals?.protein
@@ -83,7 +80,7 @@ export function QuickStats({ userProfile, todaysMeals }: QuickStatsProps) {
 	];
 
 	return (
-		<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+		<div className="grid grid-cols-2 md:grid-cols-3 gap-4">
 			{stats.map((stat) => (
 				<Card key={stat.label} className="p-4">
 					<div className="flex items-start justify-between mb-3">

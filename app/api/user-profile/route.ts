@@ -118,6 +118,23 @@ export async function PUT(request: NextRequest) {
 			},
 		});
 
+		// If currentWeight was provided, create a weight entry for today
+		if (currentWeight && updatedUser.id) {
+			const weightInKg = convertToKg(currentWeight);
+			if (weightInKg) {
+				const today = new Date();
+				today.setHours(0, 0, 0, 0);
+
+				await prisma.weightEntry.create({
+					data: {
+						userId: updatedUser.id,
+						weight: weightInKg,
+						date: today,
+					},
+				});
+			}
+		}
+
 		return NextResponse.json({ user: updatedUser });
 	} catch (error) {
 		console.error("Error updating user profile:", error);

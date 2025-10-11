@@ -28,7 +28,7 @@ export async function GET(_request: NextRequest) {
 				date: today,
 			},
 			include: {
-				Food: true, // Include food details if it's a direct food entry
+				food: true, // Include food details if it's a direct food entry
 			},
 		});
 
@@ -49,24 +49,24 @@ export async function GET(_request: NextRequest) {
 		};
 
 		for (const entry of mealEntries) {
-			if (entry.foodId && entry.Food) {
+			if (entry.foodId && entry.food) {
 				// Direct food entry
 				const servings = entry.servings;
-				totalMacros.calories += entry.Food.calories * servings;
-				totalMacros.protein += entry.Food.protein * servings;
-				totalMacros.carbs += entry.Food.carbs * servings;
-				totalMacros.fat += entry.Food.fat * servings;
+				totalMacros.calories += entry.food.calories * servings;
+				totalMacros.protein += entry.food.protein * servings;
+				totalMacros.carbs += entry.food.carbs * servings;
+				totalMacros.fat += entry.food.fat * servings;
 
 				// Basic nutrient calculation (in a real app, foods would have nutrient data)
 				// For now, using rough estimates based on food categories
 				if (
-					entry.Food.category?.toLowerCase().includes("fruit") ||
-					entry.Food.category?.toLowerCase().includes("vegetable")
+					entry.food.category?.toLowerCase().includes("fruit") ||
+					entry.food.category?.toLowerCase().includes("vegetable")
 				) {
 					totalNutrients.vitaminC += 10 * servings; // Rough estimate
 					totalNutrients.fiber += 2 * servings;
 				}
-				if (entry.Food.category?.toLowerCase().includes("dairy")) {
+				if (entry.food.category?.toLowerCase().includes("dairy")) {
 					totalNutrients.calcium += 150 * servings;
 				}
 			} else if (entry.mealId) {

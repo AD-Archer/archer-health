@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
 		}
 
 		const body = await request.json();
-		const { weight } = body;
+		const { weight, date } = body;
 
 		if (
 			typeof weight !== "number" ||
@@ -23,6 +23,30 @@ export async function POST(request: NextRequest) {
 				{ status: 400 },
 			);
 		}
+
+		// Validate date if provided
+		let entryDate: Date;
+		if (date) {
+			entryDate = new Date(date);
+			if (Number.isNaN(entryDate.getTime())) {
+				return NextResponse.json(
+					{ error: "Invalid date format" },
+					{ status: 400 },
+				);
+			}
+			// Don't allow future dates
+			const today = new Date();
+			today.setHours(23, 59, 59, 999);
+			if (entryDate > today) {
+				return NextResponse.json(
+					{ error: "Cannot log weight for future dates" },
+					{ status: 400 },
+				);
+			}
+		} else {
+			entryDate = new Date();
+		}
+		entryDate.setHours(0, 0, 0, 0);
 
 		// Get user to check their units preference
 		const user = await prisma.user.findUnique({
@@ -40,6 +64,15 @@ export async function POST(request: NextRequest) {
 		const updatedUser = await prisma.user.update({
 			where: { clerkId: userId },
 			data: { currentWeight: weightInKg },
+		});
+
+		// Create a new weight entry for the specified date
+		await prisma.weightEntry.create({
+			data: {
+				userId: user.id,
+				weight: weightInKg,
+				date: entryDate,
+			},
 		});
 
 		// Return the weight in kg (frontend handles conversion to display units)

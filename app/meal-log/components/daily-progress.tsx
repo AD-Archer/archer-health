@@ -24,9 +24,15 @@ export function DailyProgress() {
 	);
 
 	const caloriesPercent = (totals.calories / user.dailyCalorieGoal) * 100;
-	const proteinPercent = (totals.protein / user.macroGoals.protein) * 100;
-	const carbsPercent = (totals.carbs / user.macroGoals.carbs) * 100;
-	const fatPercent = (totals.fat / user.macroGoals.fat) * 100;
+	const proteinPercent = user.macroGoals?.protein
+		? (totals.protein / user.macroGoals.protein) * 100
+		: 0;
+	const carbsPercent = user.macroGoals?.carbs
+		? (totals.carbs / user.macroGoals.carbs) * 100
+		: 0;
+	const fatPercent = user.macroGoals?.fat
+		? (totals.fat / user.macroGoals.fat) * 100
+		: 0;
 
 	return (
 		<Card className="p-6">
@@ -59,7 +65,7 @@ export function DailyProgress() {
 								</span>
 								<span className="text-muted-foreground">
 									{" "}
-									/ {user.macroGoals.protein}g
+									/ {user.macroGoals?.protein || 0}g
 								</span>
 							</div>
 						</div>
@@ -77,7 +83,7 @@ export function DailyProgress() {
 								</span>
 								<span className="text-muted-foreground">
 									{" "}
-									/ {user.macroGoals.carbs}g
+									/ {user.macroGoals?.carbs || 0}g
 								</span>
 							</div>
 						</div>
@@ -91,7 +97,7 @@ export function DailyProgress() {
 								<span className="font-semibold">{Math.round(totals.fat)}g</span>
 								<span className="text-muted-foreground">
 									{" "}
-									/ {user.macroGoals.fat}g
+									/ {user.macroGoals?.fat || 0}g
 								</span>
 							</div>
 						</div>

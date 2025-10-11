@@ -36,15 +36,21 @@ model User {
   isPremium   Boolean  @default(false)
   units       String   @default("imperial")
   timezone    String   @default("America/New_York")
+  archerAquaConnectionCode String?
+  archerAquaUserId String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   // Relations
   foods       Food[]
   meals       Meal[]
-  workouts    Workout[]
   goals       Goal[]
   mealEntries MealEntry[]
+  weightEntries WeightEntry[]
+  dailyGoals  DailyGoal[]
+  hydrationLogs HydrationLog[]
+  notificationSettings NotificationSettings?
+  privacySettings PrivacySettings?
 }
 
 model Food {
@@ -61,9 +67,13 @@ model Food {
   servingUnit String
   isPublic    Boolean  @default(true)
   createdBy   String
+  userId      String
   category    String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mealEntries MealEntry[]
 }
 
 model Meal {
@@ -76,9 +86,12 @@ model Meal {
   totalFat    Float
   isPublic    Boolean  @default(true)
   createdBy   String
+  userId      String
   imageUrl    String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model MealEntry {
@@ -92,9 +105,13 @@ model MealEntry {
   protein     Float
   carbs       Float
   fat         Float
+  userId      String
   notes       String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  food        Food?    @relation(fields: [foodId], references: [id])
 }
 
 model Workout {
@@ -104,6 +121,7 @@ model Workout {
   duration    Int      // minutes
   caloriesBurned Float
   date        String
+  userId      String
   notes       String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -116,8 +134,80 @@ model Goal {
   target      Float
   current     Float
   unit        String
+  userId      String
   deadline    String?
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model WeightEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  weight    Float
+  date      DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model DailyGoal {
+  id        String   @id @default(cuid())
+  userId    String
+  date      String   // YYYY-MM-DD format
+  goalMl    Float    // Goal in milliliters
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+}
+
+model HydrationLog {
+  id                  String   @id @default(cuid())
+  userId              String
+  drinkId             String?
+  label               String
+  volumeMl            Float
+  hydrationMultiplier Float    @default(1.0)
+  effectiveMl         Float
+  consumedAt          DateTime
+  consumedAtLocal     DateTime
+  timezone            String
+  dailyKey            String   // YYYY-MM-DD format
+  source              String   @default("manual")
+  notes               String?
+  metadata            Json?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model NotificationSettings {
+  id                String @id @default(cuid())
+  userId            String @unique
+  mealReminders     Boolean @default(true)
+  workoutReminders  Boolean @default(true)
+  goalAchievements  Boolean @default(true)
+  weeklyReports     Boolean @default(true)
+  emailNotifications Boolean @default(false)
+  pushNotifications Boolean @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user              User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PrivacySettings {
+  id               String @id @default(cuid())
+  userId           String @unique
+  profileVisibility Boolean @default(true)
+  activitySharing  Boolean @default(false)
+  dataCollection   Boolean @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user             User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
