@@ -32,35 +32,26 @@ export function EditProfileModal({
 	onOpenChange,
 }: EditProfileModalProps) {
 	const { user: clerkUser } = useUser();
-	const { user, updateUser } = useStore();
-	const { getDisplayWeight, displayWeightToKg } = useUnitConversion();
+	const { updateUser } = useStore();
+	const { getDisplayWeight, displayWeightToKg, getDisplayWeeklyGoal } =
+		useUnitConversion();
 	const [formData, setFormData] = useState({
-		currentWeight: getDisplayWeight(user.currentWeight, user.units) ?? "",
-		goalWeight: getDisplayWeight(user.goalWeight, user.units) ?? "",
+		currentWeight: "",
+		goalWeight: "",
 		// For imperial, store feet and inches separately
-		height: user.height ?? "",
-		heightFeet:
-			user.units === "imperial" && user.height
-				? Math.floor(user.height / 2.54 / 12)
-				: "", // Convert cm to feet
-		heightInches:
-			user.units === "imperial" && user.height
-				? Math.round((user.height / 2.54) % 12)
-				: "", // Convert cm to inches
-		age: user.age ?? "",
-		gender: user.gender ?? "other",
-		goalType: user.goalType ?? "maintain",
-		weeklyGoal:
-			user.units === "imperial" && user.weeklyGoal
-				? Math.round(user.weeklyGoal * 2.20462)
-				: (user.weeklyGoal ?? ""),
-		units: user.units ?? "imperial",
-		timezone: user.timezone ?? "",
+		height: "",
+		heightFeet: "",
+		heightInches: "",
+		age: "",
+		gender: "other" as "male" | "female" | "other",
+		goalType: "maintain" as "lose" | "maintain" | "gain",
+		weeklyGoal: "",
+		units: "imperial" as "metric" | "imperial",
+		timezone: "",
 		name:
 			(typeof clerkUser?.fullName === "string"
 				? clerkUser.fullName
 				: `${clerkUser?.firstName ?? ""} ${clerkUser?.lastName ?? ""}`.trim()) ||
-			user.name ||
 			"",
 	} as {
 		currentWeight?: number | string;
@@ -89,12 +80,12 @@ export function EditProfileModal({
 				if (response.ok) {
 					const userData = await response.json();
 					const dbUser = userData.user || {};
-					const userUnits = dbUser.units || user.units || "imperial";
+					const userUnits = dbUser.units || "imperial";
 					setFormData({
 						currentWeight:
 							getDisplayWeight(dbUser.currentWeight, userUnits) ?? "",
 						goalWeight: getDisplayWeight(dbUser.goalWeight, userUnits) ?? "",
-						height: dbUser.height ?? user.height ?? "",
+						height: dbUser.height ?? "",
 						heightFeet:
 							userUnits === "imperial" && dbUser.height
 								? Math.floor(dbUser.height / 2.54 / 12)
@@ -103,23 +94,21 @@ export function EditProfileModal({
 							userUnits === "imperial" && dbUser.height
 								? Math.round((dbUser.height / 2.54) % 12)
 								: "",
-						age: dbUser.age ?? user.age ?? "",
-						gender: dbUser.gender ?? user.gender ?? "other",
-						goalType: dbUser.goalType ?? user.goalType ?? "maintain",
-						weeklyGoal: dbUser.weeklyGoal
-							? userUnits === "imperial"
-								? Math.round(dbUser.weeklyGoal * 2.20462)
-								: Math.round(dbUser.weeklyGoal)
-							: (user.weeklyGoal ?? ""),
-						units: dbUser.units ?? user.units ?? "imperial",
-						timezone: dbUser.timezone ?? user.timezone ?? "",
+						age: dbUser.age ?? "",
+						gender: dbUser.gender ?? "other",
+						goalType: dbUser.goalType ?? "maintain",
+						weeklyGoal:
+							dbUser.goalType === "lose" || dbUser.goalType === "gain"
+								? getDisplayWeeklyGoal(dbUser.weeklyGoal, userUnits) || ""
+								: "",
+						units: dbUser.units ?? "imperial",
+						timezone: dbUser.timezone ?? "",
 						// Removed email and username from editable fields
 						name:
 							(typeof clerkUser?.fullName === "string"
 								? clerkUser.fullName
 								: `${clerkUser?.firstName ?? ""} ${clerkUser?.lastName ?? ""}`.trim()) ||
 							dbUser.name ||
-							user.name ||
 							"",
 					});
 				}
@@ -133,7 +122,18 @@ export function EditProfileModal({
 		if (open && clerkUser) {
 			fetchUserData();
 		}
-	}, [open, clerkUser, user, getDisplayWeight]);
+	}, [open, clerkUser, getDisplayWeight, getDisplayWeeklyGoal]);
+
+	// Clear weekly goal when goal type changes to maintain
+	useEffect(() => {
+		if (formData.goalType === "maintain") {
+			setFormData((prev) => ({
+				...prev,
+				weeklyGoal: "",
+			}));
+		}
+	}, [formData.goalType]);
+
 	const handleSave = async () => {
 		if (!clerkUser) return;
 
@@ -181,11 +181,16 @@ export function EditProfileModal({
 					formData.units || "imperial",
 				);
 			}
-			if (formData.weeklyGoal) {
+			if (
+				formData.weeklyGoal &&
+				(formData.goalType === "lose" || formData.goalType === "gain")
+			) {
 				finalData.weeklyGoal = displayWeightToKg(
 					Number(formData.weeklyGoal),
 					formData.units || "imperial",
 				);
+			} else {
+				finalData.weeklyGoal = undefined; // Clear weekly goal for maintain goals
 			}
 			const response = await fetch("/api/user-profile", {
 				method: "PUT",
@@ -324,45 +329,49 @@ export function EditProfileModal({
 												</SelectContent>
 											</Select>
 										</div>
-										<div className="space-y-2">
-											<Label htmlFor="weeklyGoal">
-												Weekly Goal (
-												{formData.units === "imperial" ? "lbs" : "kg"}/week)
-											</Label>
-											<Select
-												value={formData.weeklyGoal?.toString() || ""}
-												onValueChange={(value) =>
-													setFormData({
-														...formData,
-														weeklyGoal:
-															value === ""
-																? undefined
-																: Number.parseFloat(value),
-													})
-												}
-											>
-												<SelectTrigger id="weeklyGoal">
-													<SelectValue />
-												</SelectTrigger>
-												<SelectContent>
-													<SelectItem value="0.5">
-														0.5 {formData.units === "imperial" ? "lbs" : "kg"}
-														/week
-													</SelectItem>
-													<SelectItem value="1">
-														1 {formData.units === "imperial" ? "lb" : "kg"}/week
-													</SelectItem>
-													<SelectItem value="1.5">
-														1.5 {formData.units === "imperial" ? "lbs" : "kg"}
-														/week
-													</SelectItem>
-													<SelectItem value="2">
-														2 {formData.units === "imperial" ? "lbs" : "kg"}
-														/week
-													</SelectItem>
-												</SelectContent>
-											</Select>
-										</div>
+										{(formData.goalType === "lose" ||
+											formData.goalType === "gain") && (
+											<div className="space-y-2">
+												<Label htmlFor="weeklyGoal">
+													Weekly Goal (
+													{formData.units === "imperial" ? "lbs" : "kg"}/week)
+												</Label>
+												<Select
+													value={formData.weeklyGoal?.toString() || ""}
+													onValueChange={(value) =>
+														setFormData({
+															...formData,
+															weeklyGoal:
+																value === ""
+																	? undefined
+																	: Number.parseFloat(value),
+														})
+													}
+												>
+													<SelectTrigger id="weeklyGoal">
+														<SelectValue />
+													</SelectTrigger>
+													<SelectContent>
+														<SelectItem value="0.5">
+															0.5 {formData.units === "imperial" ? "lbs" : "kg"}
+															/week
+														</SelectItem>
+														<SelectItem value="1">
+															1 {formData.units === "imperial" ? "lb" : "kg"}
+															/week
+														</SelectItem>
+														<SelectItem value="1.5">
+															1.5 {formData.units === "imperial" ? "lbs" : "kg"}
+															/week
+														</SelectItem>
+														<SelectItem value="2">
+															2 {formData.units === "imperial" ? "lbs" : "kg"}
+															/week
+														</SelectItem>
+													</SelectContent>
+												</Select>
+											</div>
+										)}
 									</div>
 									<div className="space-y-4">
 										<h3 className="font-semibold text-lg">

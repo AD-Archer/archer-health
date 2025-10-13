@@ -30,13 +30,13 @@ interface MotivationalNotesProps {
 }
 
 export function MotivationalNotes({ userProfile }: MotivationalNotesProps) {
-	const { getDisplayWeight } = useUnitConversion();
+	const { getDisplayWeight, getDisplayWeeklyGoal } = useUnitConversion();
 
 	if (
 		!userProfile?.currentWeight ||
 		!userProfile?.goalWeight ||
-		!userProfile?.weeklyGoal ||
-		!userProfile?.goalType
+		!userProfile?.goalType ||
+		(userProfile?.goalType !== "maintain" && !userProfile?.weeklyGoal)
 	) {
 		return (
 			<Card>
@@ -66,7 +66,7 @@ export function MotivationalNotes({ userProfile }: MotivationalNotesProps) {
 	// Convert to display units using the hook
 	const displayCurrentWeight = getDisplayWeight(currentWeight, units) || 0;
 	const displayGoalWeight = getDisplayWeight(goalWeight, units) || 0;
-	const displayWeeklyGoal = getDisplayWeight(weeklyGoal, units) || 0;
+	const displayWeeklyGoal = getDisplayWeeklyGoal(weeklyGoal, units) || 0;
 
 	// Determine if user is losing or gaining weight based on goalType
 	const isLosingWeight = goalType === "lose";
@@ -75,20 +75,23 @@ export function MotivationalNotes({ userProfile }: MotivationalNotesProps) {
 
 	// Calculate weight change projections
 	const weightDifference = Math.abs(displayGoalWeight - displayCurrentWeight);
-	const weeksToGoal = isMaintaining
-		? 0
-		: Math.ceil(weightDifference / displayWeeklyGoal);
+	const weeksToGoal =
+		isMaintaining || displayWeeklyGoal <= 0
+			? 0
+			: Math.ceil(weightDifference / displayWeeklyGoal);
 
 	// Future projections
 	let in5Weeks = displayCurrentWeight;
 	let in10Weeks = displayCurrentWeight;
 
-	if (isLosingWeight) {
-		in5Weeks = displayCurrentWeight - displayWeeklyGoal * 5;
-		in10Weeks = displayCurrentWeight - displayWeeklyGoal * 10;
-	} else if (isGainingWeight) {
-		in5Weeks = displayCurrentWeight + displayWeeklyGoal * 5;
-		in10Weeks = displayCurrentWeight + displayWeeklyGoal * 10;
+	if (displayWeeklyGoal > 0) {
+		if (isLosingWeight) {
+			in5Weeks = displayCurrentWeight - displayWeeklyGoal * 5;
+			in10Weeks = displayCurrentWeight - displayWeeklyGoal * 10;
+		} else if (isGainingWeight) {
+			in5Weeks = displayCurrentWeight + displayWeeklyGoal * 5;
+			in10Weeks = displayCurrentWeight + displayWeeklyGoal * 10;
+		}
 	}
 
 	const remainingToGoal = isLosingWeight
@@ -115,11 +118,13 @@ export function MotivationalNotes({ userProfile }: MotivationalNotesProps) {
 			<CardContent className="space-y-4">
 				<div className="text-center">
 					<p className="text-lg font-medium mb-2">
-						{isMaintaining
-							? "Maintaining your weight!"
-							: weeksToGoal > 0
-								? `${weeksToGoal} weeks to reach your goal!`
-								: "You've reached your goal!"}
+						{weightDifference === 0
+							? "You've reached your goal!"
+							: isMaintaining
+								? "Maintaining your weight!"
+								: weeksToGoal > 0
+									? `${weeksToGoal} weeks to reach your goal!`
+									: "Set your weekly goal to see progress timeline!"}
 					</p>
 					<p className="text-sm text-muted-foreground mb-4">
 						{remainingToGoal > 0
@@ -130,7 +135,7 @@ export function MotivationalNotes({ userProfile }: MotivationalNotesProps) {
 					</p>
 				</div>
 
-				{!isMaintaining && (
+				{!isMaintaining && displayWeeklyGoal > 0 && (
 					<div className="space-y-3">
 						<div className="flex items-center justify-between p-3 bg-primary/5 rounded-lg">
 							<div className="flex items-center gap-2">

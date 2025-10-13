@@ -91,7 +91,8 @@ const calculateWaterGoal = (
 	if (!weight) return 0;
 
 	// Convert display weight to kg for calculation
-	const weightKg = units === "imperial" ? weight * 0.453592 : weight;
+	const LBS_TO_KG = 0.453592;
+	const weightKg = units === "imperial" ? weight * LBS_TO_KG : weight;
 
 	// Base calculation: 30ml per kg of body weight
 	let baseWater = weightKg * 30; // 30ml per kg
@@ -179,6 +180,16 @@ export default function OnboardingPage() {
 		}
 	}, [formData.units]);
 
+	// Clear weekly goal when goal type changes to maintain
+	useEffect(() => {
+		if (formData.goalType === "maintain") {
+			setFormData((prev) => ({
+				...prev,
+				weeklyGoal: undefined,
+			}));
+		}
+	}, [formData.goalType]);
+
 	const handleSave = async () => {
 		if (!isLoaded || !user) return;
 
@@ -214,7 +225,8 @@ export default function OnboardingPage() {
 				formData.heightFeet &&
 				formData.heightInches
 			) {
-				finalData.height = formData.heightFeet * 12 + formData.heightInches;
+				finalData.height =
+					(formData.heightFeet * 12 + formData.heightInches) * 2.54; // Convert inches to cm
 			}
 
 			const response = await fetch("/api/user-profile", {

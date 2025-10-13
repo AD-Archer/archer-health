@@ -227,8 +227,18 @@ function CreateFoodTab({ onClose }: { onClose: () => void }) {
 	const user = useStore((state) => state.user);
 
 	const handleCreateFood = () => {
-		if (!name || !calories || !protein || !carbs || !fat || !servingSize)
+		if (
+			!name ||
+			!calories ||
+			!protein ||
+			!carbs ||
+			!fat ||
+			!servingSize ||
+			!user
+		)
 			return;
+
+		if (!user) return; // Additional check for TypeScript
 
 		const newFood: Food = {
 			id: Date.now().toString(),
@@ -397,7 +407,7 @@ function CreateMealTab({ onClose }: { onClose: () => void }) {
 	};
 
 	const handleCreateMeal = () => {
-		if (!mealName || selectedFoods.length === 0) return;
+		if (!mealName || selectedFoods.length === 0 || !user) return;
 
 		const totals = calculateTotals();
 		const newMeal = {

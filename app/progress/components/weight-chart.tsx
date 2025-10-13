@@ -105,12 +105,12 @@ export function WeightChart() {
 			.filter((entry) => new Date(entry.date) >= cutoffDate)
 			.map((entry) => ({
 				date: new Date(entry.date).toLocaleDateString(),
-				weight: getDisplayWeight(entry.weight, user.units),
+				weight: getDisplayWeight(entry.weight, user?.units || "imperial"),
 			}));
 	};
 
 	const data = getFilteredData();
-	const unitLabel = user.units === "imperial" ? "lbs" : "kg";
+	const unitLabel = user?.units === "imperial" ? "lbs" : "kg";
 
 	return (
 		<Card>

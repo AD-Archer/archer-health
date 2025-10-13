@@ -6,6 +6,7 @@ export interface User {
 	avatar?: string;
 	currentWeight: number;
 	goalWeight: number;
+	startingWeight?: number; // Weight when goal was set
 	height: number;
 	age: number;
 	gender: "male" | "female" | "other";
@@ -88,6 +89,35 @@ export interface Goal {
 	unit: string;
 	deadline?: string;
 	isActive: boolean;
+	isArchived?: boolean;
+	startDate?: Date;
+	completedAt?: Date;
+	createdAt?: Date;
+	updatedAt?: Date;
+}
+
+export interface Achievement {
+	id: string;
+	achievementId: string;
+	name: string;
+	description: string;
+	icon?: string;
+	category: string;
+	requirement?: string;
+	triggerType?: "manual" | "automatic";
+	unlockedAt?: Date;
+	isUnlocked?: boolean;
+}
+
+export interface PresetAchievement {
+	id: string;
+	name: string;
+	description: string;
+	icon: string;
+	category: string;
+	requirement: string; // Description of what needs to be done
+	triggerType: "manual" | "automatic"; // How it's unlocked
+	triggerCondition?: unknown; // Data for automatic triggering
 }
 
 // Mock Data
@@ -96,14 +126,14 @@ export const mockUser: User = {
 	name: "Sarah Johnson",
 	email: "sarah@example.com",
 	avatar: "/diverse-woman-smiling.png",
-	currentWeight: 158,
-	goalWeight: 145,
-	height: 66, // inches
+	currentWeight: 59, // kg (approximately 130 lbs)
+	goalWeight: 64, // kg (approximately 141 lbs)
+	height: 168, // cm (approximately 5'6")
 	age: 28,
 	gender: "female",
 	activityLevel: "moderate",
 	goalType: "lose",
-	weeklyGoal: 1,
+	weeklyGoal: 0.45, // kg per week (approximately 1 lb)
 	dailyCalorieGoal: 1650,
 	macroGoals: {
 		protein: 120,
@@ -273,6 +303,88 @@ export const mockGoals: Goal[] = [
 		current: 0,
 		unit: "week",
 		isActive: true,
+	},
+];
+
+export const presetAchievements: PresetAchievement[] = [
+	{
+		id: "first-workout",
+		name: "First Steps",
+		description: "Complete your first workout",
+		icon: "🏃",
+		category: "fitness",
+		requirement: "Log your first workout session",
+		triggerType: "manual",
+	},
+	{
+		id: "week-streak",
+		name: "Week Warrior",
+		description: "Work out for 7 consecutive days",
+		icon: "🔥",
+		category: "consistency",
+		requirement: "Complete workouts for 7 days in a row",
+		triggerType: "automatic",
+		triggerCondition: { type: "streak", days: 7 },
+	},
+	{
+		id: "month-streak",
+		name: "Monthly Master",
+		description: "Work out for 30 consecutive days",
+		icon: "👑",
+		category: "consistency",
+		requirement: "Complete workouts for 30 days in a row",
+		triggerType: "automatic",
+		triggerCondition: { type: "streak", days: 30 },
+	},
+	{
+		id: "protein-champion",
+		name: "Protein Champion",
+		description: "Hit your daily protein goal 10 times",
+		icon: "💪",
+		category: "nutrition",
+		requirement: "Reach your daily protein target 10 times",
+		triggerType: "automatic",
+		triggerCondition: { type: "goal_hits", goalType: "macro", count: 10 },
+	},
+	{
+		id: "water-warrior",
+		name: "Hydration Hero",
+		description: "Meet your daily water goal 14 times",
+		icon: "💧",
+		category: "hydration",
+		requirement: "Reach your daily water target 14 times",
+		triggerType: "automatic",
+		triggerCondition: { type: "goal_hits", goalType: "water", count: 14 },
+	},
+	{
+		id: "meal-master",
+		name: "Meal Master",
+		description: "Log 50 meals",
+		icon: "🍽️",
+		category: "nutrition",
+		requirement: "Log a total of 50 meals",
+		triggerType: "automatic",
+		triggerCondition: { type: "meal_count", count: 50 },
+	},
+	{
+		id: "weight-loss-warrior",
+		name: "Weight Loss Warrior",
+		description: "Lose 5 pounds",
+		icon: "⚖️",
+		category: "weight",
+		requirement: "Lose 5 pounds from your starting weight",
+		triggerType: "automatic",
+		triggerCondition: { type: "weight_loss", pounds: 5 },
+	},
+	{
+		id: "early-bird",
+		name: "Early Bird",
+		description: "Complete 10 morning workouts",
+		icon: "🌅",
+		category: "fitness",
+		requirement: "Finish 10 workouts before 9 AM",
+		triggerType: "automatic",
+		triggerCondition: { type: "morning_workouts", count: 10 },
 	},
 ];
 

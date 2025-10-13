@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { type NextRequest, NextResponse } from "next/server";
+import { calculateNutritionNeeds } from "../../../lib/nutrition-calculator";
 import { prisma } from "../../../lib/prisma";
 
 export async function GET(_request: NextRequest) {
@@ -18,9 +19,62 @@ export async function GET(_request: NextRequest) {
 			return NextResponse.json({ error: "User not found" }, { status: 404 });
 		}
 
+		// Check if macro goals need to be calculated
+		let macroGoals = user.macroGoals
+			? JSON.parse(user.macroGoals as string)
+			: null;
+		const hasCompleteProfile =
+			user.currentWeight &&
+			user.height &&
+			user.age &&
+			user.gender &&
+			user.activityLevel &&
+			user.goalType &&
+			user.weeklyGoal;
+
+		// Auto-calculate macro goals if profile is complete but macro goals are missing
+		if (!macroGoals && hasCompleteProfile) {
+			const userForCalculation = {
+				id: user.id,
+				name: user.name || "",
+				email: user.email,
+				currentWeight: user.currentWeight as number,
+				goalWeight: user.goalWeight || (user.currentWeight as number),
+				height: user.height as number,
+				age: user.age as number,
+				gender: user.gender as "male" | "female" | "other",
+				activityLevel: user.activityLevel as
+					| "sedentary"
+					| "light"
+					| "moderate"
+					| "active"
+					| "very-active",
+				goalType: user.goalType as "lose" | "maintain" | "gain",
+				weeklyGoal: user.weeklyGoal as number,
+				dailyCalorieGoal: user.dailyCalorieGoal || 0,
+				macroGoals: { protein: 0, carbs: 0, fat: 0 },
+				waterGoal: user.waterGoal || 0,
+				isPremium: user.isPremium,
+				units: user.units as "metric" | "imperial",
+				timezone: user.timezone,
+			};
+
+			const nutritionNeeds = calculateNutritionNeeds(userForCalculation);
+			macroGoals = nutritionNeeds.macros;
+
+			// Save the calculated macro goals to the database
+			await prisma.user.update({
+				where: { clerkId: userId },
+				data: {
+					macroGoals: JSON.stringify(macroGoals),
+				},
+			});
+		}
+
 		// Return weights in metric (kg) - frontend handles conversion
 		const userWithConvertedWeights = {
 			...user,
+			macroGoals,
 			// Weights are already stored in kg, no conversion needed
 		};
 
@@ -45,6 +99,7 @@ export async function PUT(request: NextRequest) {
 		const {
 			currentWeight,
 			goalWeight,
+			startingWeight,
 			height,
 			age,
 			gender,
@@ -77,8 +132,52 @@ export async function PUT(request: NextRequest) {
 		const convertWeeklyGoalToKg = (goal: unknown) => {
 			if (!goal) return undefined;
 			const goalNum = parseFloat(goal.toString());
-			return Math.round(goalNum); // Round to nearest whole kg
+			return Math.round(goalNum * 10) / 10; // Round to 1 decimal place
 		};
+
+		// Calculate macro goals if we have the necessary data
+		let macroGoals = null;
+		const weightKg = convertToKg(currentWeight);
+		const heightCm = height ? parseFloat(height.toString()) : undefined;
+		const ageNum = age ? parseInt(age.toString(), 10) : undefined;
+		const weeklyGoalKg = convertWeeklyGoalToKg(weeklyGoal);
+
+		if (
+			weightKg &&
+			heightCm &&
+			ageNum &&
+			gender &&
+			activityLevel &&
+			goalType &&
+			weeklyGoalKg
+		) {
+			const userForCalculation = {
+				id: "",
+				name: "",
+				email: "",
+				currentWeight: weightKg,
+				goalWeight: convertToKg(goalWeight) || weightKg,
+				height: heightCm,
+				age: ageNum,
+				gender: gender as "male" | "female" | "other",
+				activityLevel: activityLevel as
+					| "sedentary"
+					| "light"
+					| "moderate"
+					| "active"
+					| "very-active",
+				goalType: goalType as "lose" | "maintain" | "gain",
+				weeklyGoal: weeklyGoalKg,
+				dailyCalorieGoal: 0,
+				macroGoals: { protein: 0, carbs: 0, fat: 0 },
+				waterGoal: 0,
+				isPremium: false,
+				units: userUnits as "metric" | "imperial",
+				timezone: timezone || "America/New_York",
+			};
+			const nutritionNeeds = calculateNutritionNeeds(userForCalculation);
+			macroGoals = nutritionNeeds.macros;
+		}
 
 		// Update or create user profile data
 		const updatedUser = await prisma.user.upsert({
@@ -86,6 +185,7 @@ export async function PUT(request: NextRequest) {
 			update: {
 				currentWeight: convertToKg(currentWeight),
 				goalWeight: convertToKg(goalWeight),
+				startingWeight: convertToKg(startingWeight),
 				height: height ? parseFloat(height.toString()) : undefined,
 				age: age ? parseInt(age.toString(), 10) : undefined,
 				gender,
@@ -98,11 +198,13 @@ export async function PUT(request: NextRequest) {
 				waterGoalUnit: waterGoalUnit || "oz",
 				name,
 				email,
+				macroGoals: macroGoals ? JSON.stringify(macroGoals) : undefined,
 			},
 			create: {
 				clerkId: userId,
 				currentWeight: convertToKg(currentWeight),
 				goalWeight: convertToKg(goalWeight),
+				startingWeight: convertToKg(startingWeight),
 				height: height ? parseFloat(height.toString()) : undefined,
 				age: age ? parseInt(age.toString(), 10) : undefined,
 				gender,
@@ -115,6 +217,7 @@ export async function PUT(request: NextRequest) {
 				waterGoalUnit: waterGoalUnit || "oz",
 				name,
 				email,
+				macroGoals: macroGoals ? JSON.stringify(macroGoals) : undefined,
 			},
 		});
 

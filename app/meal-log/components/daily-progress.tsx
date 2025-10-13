@@ -23,14 +23,16 @@ export function DailyProgress() {
 		{ calories: 0, protein: 0, carbs: 0, fat: 0 },
 	);
 
-	const caloriesPercent = (totals.calories / user.dailyCalorieGoal) * 100;
-	const proteinPercent = user.macroGoals?.protein
+	const caloriesPercent = user
+		? (totals.calories / user.dailyCalorieGoal) * 100
+		: 0;
+	const proteinPercent = user?.macroGoals?.protein
 		? (totals.protein / user.macroGoals.protein) * 100
 		: 0;
-	const carbsPercent = user.macroGoals?.carbs
+	const carbsPercent = user?.macroGoals?.carbs
 		? (totals.carbs / user.macroGoals.carbs) * 100
 		: 0;
-	const fatPercent = user.macroGoals?.fat
+	const fatPercent = user?.macroGoals?.fat
 		? (totals.fat / user.macroGoals.fat) * 100
 		: 0;
 
@@ -46,7 +48,7 @@ export function DailyProgress() {
 							</span>
 							<span className="text-muted-foreground">
 								{" "}
-								/ {user.dailyCalorieGoal}
+								/ {user?.dailyCalorieGoal || 2000}
 							</span>
 						</div>
 					</div>
@@ -65,7 +67,7 @@ export function DailyProgress() {
 								</span>
 								<span className="text-muted-foreground">
 									{" "}
-									/ {user.macroGoals?.protein || 0}g
+									/ {user?.macroGoals?.protein ?? 0}g
 								</span>
 							</div>
 						</div>
@@ -83,7 +85,7 @@ export function DailyProgress() {
 								</span>
 								<span className="text-muted-foreground">
 									{" "}
-									/ {user.macroGoals?.carbs || 0}g
+									/ {user?.macroGoals?.carbs ?? 0}g
 								</span>
 							</div>
 						</div>
@@ -97,7 +99,7 @@ export function DailyProgress() {
 								<span className="font-semibold">{Math.round(totals.fat)}g</span>
 								<span className="text-muted-foreground">
 									{" "}
-									/ {user.macroGoals?.fat || 0}g
+									/ {user?.macroGoals?.fat ?? 0}g
 								</span>
 							</div>
 						</div>

@@ -3,7 +3,7 @@
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import type { Goal, MealEntry, User } from "@/app/data/data";
+import type { MealEntry, User } from "@/app/data/data";
 import { DesktopNav } from "@/components/desktop-nav";
 import { MobileNav } from "@/components/mobile-nav";
 import { useStore } from "@/lib/store";
@@ -22,6 +22,7 @@ interface UserProfile {
 	clerkId?: string;
 	currentWeight: number | null;
 	goalWeight: number | null;
+	startingWeight: number | null;
 	height: number | null;
 	age: number | null;
 	name: string | null;
@@ -63,12 +64,11 @@ interface TodaysMacros {
 export default function DashboardPage() {
 	const router = useRouter();
 	const { user, isLoaded } = useUser();
-	const { updateUser } = useStore();
+	const { updateUser, setGoals } = useStore();
 	const [isCheckingProfile, setIsCheckingProfile] = useState(true);
 	const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 	const [todaysMeals, setTodaysMeals] = useState<TodaysMeals | null>(null);
 	const [todaysMacros, setTodaysMacros] = useState<TodaysMacros | null>(null);
-	const [_goals, setGoals] = useState<Goal[]>([]);
 
 	useEffect(() => {
 		if (isLoaded && user) {
@@ -130,7 +130,9 @@ export default function DashboardPage() {
 			fetch("/api/goals")
 				.then((res) => res.json())
 				.then((data) => {
-					setGoals(data.goals || []);
+					if (data.goals) {
+						setGoals(data.goals);
+					}
 				})
 				.catch((error) => {
 					console.error("Error fetching goals:", error);
@@ -139,7 +141,7 @@ export default function DashboardPage() {
 			// Not authenticated, redirect to login
 			router.push("/login");
 		}
-	}, [isLoaded, user, updateUser, router]);
+	}, [isLoaded, user, updateUser, setGoals, router]);
 
 	// Show loading while checking profile
 	if (!isLoaded || isCheckingProfile) {

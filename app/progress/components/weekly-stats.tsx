@@ -71,6 +71,24 @@ export function WeeklyStats() {
 	const { getDisplayWeight } = useUnitConversion();
 	const [progressData, setProgressData] = useState<ProgressData | null>(null);
 
+	if (!user) {
+		return (
+			<Card>
+				<CardHeader>
+					<CardTitle className="font-display flex items-center gap-2">
+						<TrendingDown className="w-5 h-5" />
+						Weekly Stats
+					</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<div className="text-center py-4 text-muted-foreground">
+						Loading user data...
+					</div>
+				</CardContent>
+			</Card>
+		);
+	}
+
 	useEffect(() => {
 		const fetchProgress = async () => {
 			try {
@@ -110,7 +128,7 @@ export function WeeklyStats() {
 
 	const weightLost = getWeightLost();
 	const displayWeightLost = Math.abs(
-		getDisplayWeight(weightLost, user.units) || 0,
+		getDisplayWeight(weightLost, user?.units || "imperial") || 0,
 	);
 	const weightLostText =
 		weightLost > 0
@@ -118,12 +136,15 @@ export function WeeklyStats() {
 			: weightLost < 0
 				? `+${displayWeightLost.toFixed(1)}`
 				: "0.0";
-	const weightUnit = user.units === "imperial" ? "lbs" : "kg";
+	const weightUnit = user?.units === "imperial" ? "lbs" : "kg";
 
 	const averageWeight = progressData?.averages?.weight
-		? (getDisplayWeight(progressData.averages.weight, user.units) || 0).toFixed(
-				1,
-			)
+		? (
+				getDisplayWeight(
+					progressData.averages.weight,
+					user?.units || "imperial",
+				) || 0
+			).toFixed(1)
 		: "0.0";
 
 	const stats = [

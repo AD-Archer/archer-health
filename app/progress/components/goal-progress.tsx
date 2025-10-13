@@ -1,7 +1,6 @@
 "use client";
 
 import { Calendar, Target, TrendingUp } from "lucide-react";
-import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useStore } from "@/lib/store";
@@ -18,39 +17,15 @@ interface Goal {
 	isActive: boolean;
 }
 
-interface ProgressData {
-	goals: Goal[];
-	weightHistory: Array<{
-		weight: number;
-		date: string;
-	}>;
-}
-
 export function GoalProgress() {
 	const user = useStore((state) => state.user);
+	const goals = useStore((state) => state.goals);
 	const { getDisplayWeight } = useUnitConversion();
-	const [progressData, setProgressData] = useState<ProgressData | null>(null);
-
-	useEffect(() => {
-		const fetchProgress = async () => {
-			try {
-				const response = await fetch("/api/progress");
-				if (response.ok) {
-					const data = await response.json();
-					setProgressData(data);
-				}
-			} catch (error) {
-				console.error("Error fetching progress data:", error);
-			}
-		};
-
-		fetchProgress();
-	}, []);
 
 	const getGoalProgress = (goal: Goal) => {
 		if (goal.type === "weight") {
 			// For weight goals, calculate progress based on current weight vs target
-			const currentWeight = user.currentWeight || 0;
+			const currentWeight = user?.currentWeight || 0;
 			const targetWeight = goal.target;
 			const startWeight = goal.current; // This might be the starting weight
 
@@ -82,7 +57,7 @@ export function GoalProgress() {
 
 	const formatGoalValue = (goal: Goal) => {
 		if (goal.type === "weight") {
-			const unit = user.units || "imperial";
+			const unit = user?.units || "imperial";
 			const currentDisplay = getDisplayWeight(goal.current, unit);
 			const targetDisplay = getDisplayWeight(goal.target, unit);
 			if (currentDisplay === null || targetDisplay === null)
@@ -101,40 +76,42 @@ export function GoalProgress() {
 				</CardTitle>
 			</CardHeader>
 			<CardContent className="space-y-6">
-				{progressData?.goals && progressData.goals.length > 0 ? (
-					progressData.goals.map((goal) => {
-						const progress = getGoalProgress(goal);
-						const daysRemaining = getDaysRemaining(goal.deadline);
+				{goals && goals.length > 0 ? (
+					goals
+						.filter((goal) => goal.isActive)
+						.map((goal) => {
+							const progress = getGoalProgress(goal);
+							const daysRemaining = getDaysRemaining(goal.deadline);
 
-						return (
-							<div key={goal.id} className="space-y-3">
-								<div className="flex items-center justify-between">
-									<div>
-										<h4 className="font-medium">{goal.name}</h4>
-										<p className="text-sm text-muted-foreground">
-											{formatGoalValue(goal)}
-										</p>
-									</div>
-									{daysRemaining !== null && (
-										<div className="flex items-center gap-1 text-xs text-muted-foreground">
-											<Calendar className="w-3 h-3" />
-											{daysRemaining} days left
+							return (
+								<div key={goal.id} className="space-y-3">
+									<div className="flex items-center justify-between">
+										<div>
+											<h4 className="font-medium">{goal.name}</h4>
+											<p className="text-sm text-muted-foreground">
+												{formatGoalValue(goal)}
+											</p>
 										</div>
-									)}
+										{daysRemaining !== null && (
+											<div className="flex items-center gap-1 text-xs text-muted-foreground">
+												<Calendar className="w-3 h-3" />
+												{daysRemaining} days left
+											</div>
+										)}
+									</div>
+									<Progress value={progress} className="h-3" />
+									<div className="flex items-center justify-between text-xs text-muted-foreground">
+										<span>{progress.toFixed(1)}% complete</span>
+										{progress >= 100 && (
+											<span className="text-green-600 font-medium flex items-center gap-1">
+												<TrendingUp className="w-3 h-3" />
+												Goal achieved!
+											</span>
+										)}
+									</div>
 								</div>
-								<Progress value={progress} className="h-3" />
-								<div className="flex items-center justify-between text-xs text-muted-foreground">
-									<span>{progress.toFixed(1)}% complete</span>
-									{progress >= 100 && (
-										<span className="text-green-600 font-medium flex items-center gap-1">
-											<TrendingUp className="w-3 h-3" />
-											Goal achieved!
-										</span>
-									)}
-								</div>
-							</div>
-						);
-					})
+							);
+						})
 				) : (
 					<div className="text-center py-8 text-muted-foreground">
 						<Target className="w-12 h-12 mx-auto mb-4 opacity-50" />

@@ -45,7 +45,7 @@ export function NutritionBreakdown() {
 	const averages = progressData?.averages;
 
 	// Use macro goals from user if available, otherwise use reasonable defaults
-	const macroGoals = user.macroGoals as {
+	const macroGoals = user?.macroGoals as {
 		protein?: number;
 		carbs?: number;
 		fat?: number;
@@ -116,13 +116,13 @@ export function NutritionBreakdown() {
 					<div className="flex items-center justify-between text-sm">
 						<span className="font-medium">Total Calories</span>
 						<span className="text-muted-foreground">
-							{todayNutrition?.calories || 0} / {user.dailyCalorieGoal || 2000}
+							{todayNutrition?.calories || 0} / {user?.dailyCalorieGoal || 2000}
 						</span>
 					</div>
 					<Progress
 						value={Math.min(
 							((todayNutrition?.calories || 0) /
-								(user.dailyCalorieGoal || 2000)) *
+								(user?.dailyCalorieGoal || 2000)) *
 								100,
 							100,
 						)}

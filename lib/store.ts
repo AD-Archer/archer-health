@@ -1,20 +1,16 @@
 import { create } from "zustand";
-import {
-	type Food,
-	type Goal,
-	type Meal,
-	type MealEntry,
-	mockFoods,
-	mockGoals,
-	mockMeals,
-	mockUser,
-	mockWorkouts,
-	type User,
-	type Workout,
+import type {
+	Food,
+	Goal,
+	Meal,
+	MealEntry,
+	User,
+	Workout,
 } from "@/app/data/data";
+import { updateGoalProgress } from "./goal-progress";
 
 interface AppState {
-	user: User;
+	user: User | null;
 	foods: Food[];
 	meals: Meal[];
 	workouts: Workout[];
@@ -29,7 +25,9 @@ interface AppState {
 	addMeal: (meal: Meal) => void;
 	addWorkout: (workout: Workout) => void;
 	addGoal: (goal: Goal) => void;
+	setGoals: (goals: Goal[]) => void;
 	updateGoal: (id: string, goal: Partial<Goal>) => void;
+	updateGoalProgress: (id: string) => void;
 	addMealEntry: (entry: MealEntry) => void;
 	removeMealEntry: (id: string) => void;
 	updateWaterIntake: (amount: number) => void;
@@ -37,18 +35,18 @@ interface AppState {
 }
 
 export const useStore = create<AppState>((set) => ({
-	user: mockUser,
-	foods: mockFoods,
-	meals: mockMeals,
-	workouts: mockWorkouts,
-	goals: mockGoals,
+	user: null, // Start with null, will be populated from API
+	foods: [],
+	meals: [],
+	workouts: [],
+	goals: [],
 	mealEntries: [],
 	waterIntake: 0,
 	refetchTrigger: 0,
 
 	updateUser: (userData) =>
 		set((state) => ({
-			user: { ...state.user, ...userData },
+			user: state.user ? { ...state.user, ...userData } : (userData as User),
 		})),
 
 	addFood: (food) =>
@@ -71,9 +69,23 @@ export const useStore = create<AppState>((set) => ({
 			goals: [...state.goals, goal],
 		})),
 
+	setGoals: (goals) =>
+		set(() => ({
+			goals,
+		})),
+
 	updateGoal: (id, goalData) =>
 		set((state) => ({
 			goals: state.goals.map((g) => (g.id === id ? { ...g, ...goalData } : g)),
+		})),
+
+	updateGoalProgress: (id) =>
+		set((state) => ({
+			goals: state.goals.map((g) =>
+				g.id === id && state.user
+					? updateGoalProgress(g, state.user, state.mealEntries, state.workouts)
+					: g,
+			),
 		})),
 
 	addMealEntry: (entry) =>

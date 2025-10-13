@@ -52,6 +52,21 @@ export function useUnitConversion() {
 				return units === "imperial" ? displayWeight * LBS_TO_KG : displayWeight;
 			},
 
+			// Get display weekly goal from kg/week
+			getDisplayWeeklyGoal: (weeklyGoalKg: number | null, units: string) => {
+				if (!weeklyGoalKg) return null;
+				return units === "imperial"
+					? Math.round(weeklyGoalKg * KG_TO_LBS * 10) / 10 // Round to 1 decimal place
+					: Math.round(weeklyGoalKg * 10) / 10;
+			},
+
+			// Convert display weekly goal to kg/week
+			displayWeeklyGoalToKg: (displayWeeklyGoal: number, units: string) => {
+				return units === "imperial"
+					? displayWeeklyGoal * LBS_TO_KG
+					: displayWeeklyGoal;
+			},
+
 			// Get unit labels
 			getWeightUnit: (units: string) => (units === "imperial" ? "lbs" : "kg"),
 			getHeightUnit: (units: string) => (units === "imperial" ? "ft/in" : "cm"),

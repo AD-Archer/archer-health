@@ -47,7 +47,7 @@ export function ProgressChart() {
 	const weightData = progressData?.weightHistory
 		? progressData.weightHistory.slice(-14).map((entry, index) => ({
 				date: `Day ${index + 1}`,
-				value: getDisplayWeight(entry.weight, user.units) || 0,
+				value: getDisplayWeight(entry.weight, user?.units || "imperial") || 0,
 			}))
 		: [];
 

@@ -9,13 +9,41 @@ export async function GET(_request: NextRequest) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 
-		// First, find the user by clerkId to get the internal user ID
-		const user = await prisma.user.findUnique({
+		// Find or create user
+		let user = await prisma.user.findUnique({
 			where: { clerkId },
 		});
 
 		if (!user) {
-			return NextResponse.json({ error: "User not found" }, { status: 404 });
+			// Create basic user record if it doesn't exist
+			try {
+				const clerkUser = await fetch(
+					`https://api.clerk.com/v1/users/${clerkId}`,
+					{
+						headers: {
+							Authorization: `Bearer ${process.env.CLERK_SECRET_KEY}`,
+						},
+					},
+				).then((res) => res.json());
+
+				user = await prisma.user.create({
+					data: {
+						clerkId,
+						name:
+							`${clerkUser.first_name || ""} ${clerkUser.last_name || ""}`.trim() ||
+							"User",
+						email: clerkUser.email_addresses?.[0]?.email_address || null,
+						avatar: clerkUser.image_url || null,
+						username: clerkUser.username || null,
+					},
+				});
+			} catch (clerkError) {
+				console.error("Error fetching user from Clerk:", clerkError);
+				return NextResponse.json(
+					{ error: "Failed to create user record" },
+					{ status: 500 },
+				);
+			}
 		}
 
 		const settings = await prisma.notificationSettings.findUnique({
@@ -38,13 +66,41 @@ export async function PUT(request: NextRequest) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 
-		// First, find the user by clerkId to get the internal user ID
-		const user = await prisma.user.findUnique({
+		// Find or create user
+		let user = await prisma.user.findUnique({
 			where: { clerkId },
 		});
 
 		if (!user) {
-			return NextResponse.json({ error: "User not found" }, { status: 404 });
+			// Create basic user record if it doesn't exist
+			try {
+				const clerkUser = await fetch(
+					`https://api.clerk.com/v1/users/${clerkId}`,
+					{
+						headers: {
+							Authorization: `Bearer ${process.env.CLERK_SECRET_KEY}`,
+						},
+					},
+				).then((res) => res.json());
+
+				user = await prisma.user.create({
+					data: {
+						clerkId,
+						name:
+							`${clerkUser.first_name || ""} ${clerkUser.last_name || ""}`.trim() ||
+							"User",
+						email: clerkUser.email_addresses?.[0]?.email_address || null,
+						avatar: clerkUser.image_url || null,
+						username: clerkUser.username || null,
+					},
+				});
+			} catch (clerkError) {
+				console.error("Error fetching user from Clerk:", clerkError);
+				return NextResponse.json(
+					{ error: "Failed to create user record" },
+					{ status: 500 },
+				);
+			}
 		}
 
 		const body = await request.json();
