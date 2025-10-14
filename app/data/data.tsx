@@ -41,6 +41,8 @@ export interface Food {
 	isPublic: boolean;
 	createdBy: string;
 	category?: string;
+	source?: "usda" | "user";
+	isVerified?: boolean;
 }
 
 export interface Meal {

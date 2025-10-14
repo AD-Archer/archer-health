@@ -1,7 +1,7 @@
 "use client";
 
-import { Plus, Search, Utensils } from "lucide-react";
-import { useState } from "react";
+import { CheckCircle, Plus, Search, Utensils } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import type { Food, MealEntry } from "@/app/data/data";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,9 +27,14 @@ import { useStore } from "@/lib/store";
 interface AddEntryModalProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
+	selectedDate?: Date;
 }
 
-export function AddEntryModal({ open, onOpenChange }: AddEntryModalProps) {
+export function AddEntryModal({
+	open,
+	onOpenChange,
+	selectedDate,
+}: AddEntryModalProps) {
 	const [activeTab, setActiveTab] = useState("log-food");
 
 	return (
@@ -47,7 +52,10 @@ export function AddEntryModal({ open, onOpenChange }: AddEntryModalProps) {
 					</TabsList>
 
 					<TabsContent value="log-food" className="space-y-4">
-						<LogFoodTab onClose={() => onOpenChange(false)} />
+						<LogFoodTab
+							onClose={() => onOpenChange(false)}
+							selectedDate={selectedDate}
+						/>
 					</TabsContent>
 
 					<TabsContent value="create-food" className="space-y-4">
@@ -63,27 +71,102 @@ export function AddEntryModal({ open, onOpenChange }: AddEntryModalProps) {
 	);
 }
 
-function LogFoodTab({ onClose }: { onClose: () => void }) {
+function LogFoodTab({
+	onClose,
+	selectedDate,
+}: {
+	onClose: () => void;
+	selectedDate?: Date;
+}) {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [selectedFood, setSelectedFood] = useState<Food | null>(null);
 	const [servings, setServings] = useState("1");
 	const [mealType, setMealType] = useState<
 		"breakfast" | "lunch" | "dinner" | "snacks"
 	>("breakfast");
+	const [foods, setFoods] = useState<Food[]>([]);
+	const [recentFoods, setRecentFoods] = useState<Food[]>([]);
+	const [isLoading, setIsLoading] = useState(false);
+	const [isLoadingRecent, setIsLoadingRecent] = useState(false);
+	const [isLogging, setIsLogging] = useState(false);
 	const addMealEntry = useStore((state) => state.addMealEntry);
-	const foods = useStore((state) => state.foods);
 
-	const filteredFoods = foods.filter((food) =>
-		food.name.toLowerCase().includes(searchQuery.toLowerCase()),
-	);
+	const loadRecentFoods = useCallback(async () => {
+		setIsLoadingRecent(true);
+		try {
+			// Get recent meal entries and extract unique foods
+			const response = await fetch("/api/todays-meals");
+			if (response.ok) {
+				const data = await response.json();
+				const recentFoodIds = new Set<string>();
+				const recentFoodsList: Food[] = [];
 
-	const handleLogFood = () => {
+				// Get foods from today's entries, most recent first
+				for (const entry of data.mealEntries.slice(-10)) {
+					// Check last 10 entries
+					if (entry.foodId && !recentFoodIds.has(entry.foodId)) {
+						try {
+							const foodResponse = await fetch(`/api/foods/${entry.foodId}`);
+							if (foodResponse.ok) {
+								const food = await foodResponse.json();
+								recentFoodsList.push(food);
+								recentFoodIds.add(entry.foodId);
+								if (recentFoodsList.length >= 3) break;
+							}
+						} catch (error) {
+							console.error("Error fetching food:", error);
+						}
+					}
+				}
+
+				setRecentFoods(recentFoodsList);
+			}
+		} catch (error) {
+			console.error("Error loading recent foods:", error);
+		} finally {
+			setIsLoadingRecent(false);
+		}
+	}, []);
+
+	const searchFoods = useCallback(async () => {
+		setIsLoading(true);
+		try {
+			const response = await fetch(
+				`/api/foods?q=${encodeURIComponent(searchQuery)}`,
+			);
+			if (response.ok) {
+				const data = await response.json();
+				setFoods(data);
+			}
+		} catch (error) {
+			console.error("Error searching foods:", error);
+		} finally {
+			setIsLoading(false);
+		}
+	}, [searchQuery]);
+
+	useEffect(() => {
+		loadRecentFoods();
+	}, [loadRecentFoods]);
+
+	useEffect(() => {
+		if (searchQuery.length > 2) {
+			searchFoods();
+		} else {
+			setFoods([]);
+		}
+	}, [searchQuery, searchFoods]);
+
+	const handleLogFood = async () => {
 		if (!selectedFood) return;
 
+		setIsLogging(true);
 		const servingAmount = Number.parseFloat(servings) || 1;
 		const entry: MealEntry = {
 			id: Date.now().toString(),
-			date: new Date().toISOString(),
+			date: selectedDate
+				? selectedDate.toISOString().split("T")[0]
+				: new Date().toISOString().split("T")[0], // Use selectedDate if provided
 			mealType,
 			foodId: selectedFood.id,
 			servings: servingAmount,
@@ -93,8 +176,27 @@ function LogFoodTab({ onClose }: { onClose: () => void }) {
 			fat: selectedFood.fat * servingAmount,
 		};
 
-		addMealEntry(entry);
-		onClose();
+		try {
+			const response = await fetch("/api/meal-entries", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify(entry),
+			});
+
+			if (response.ok) {
+				const createdEntry = await response.json();
+				addMealEntry(createdEntry);
+				onClose();
+			} else {
+				console.error("Error logging food");
+			}
+		} catch (error) {
+			console.error("Error logging food:", error);
+		} finally {
+			setIsLogging(false);
+		}
 	};
 
 	return (
@@ -114,23 +216,84 @@ function LogFoodTab({ onClose }: { onClose: () => void }) {
 
 			<ScrollArea className="h-48 border rounded-lg">
 				<div className="p-2 space-y-1">
-					{filteredFoods.map((food) => (
-						<button
-							key={food.id}
-							onClick={() => setSelectedFood(food)}
-							className={`w-full text-left p-3 rounded-lg hover:bg-muted transition-colors ${
-								selectedFood?.id === food.id
-									? "bg-primary/10 border border-primary"
-									: ""
-							}`}
-						>
-							<div className="font-medium">{food.name}</div>
-							<div className="text-sm text-muted-foreground">
-								{food.calories} cal • P: {food.protein}g • C: {food.carbs}g • F:{" "}
-								{food.fat}g
+					{isLoading || isLoadingRecent ? (
+						<div className="text-center text-muted-foreground py-4">
+							{isLoading ? "Searching..." : "Loading recent foods..."}
+						</div>
+					) : searchQuery.length > 2 ? (
+						// Show search results
+						foods.length > 0 ? (
+							foods.map((food) => (
+								<button
+									key={food.id}
+									onClick={() => setSelectedFood(food)}
+									className={`w-full text-left p-3 rounded-lg hover:bg-muted transition-colors ${
+										selectedFood?.id === food.id
+											? "bg-primary/10 border border-primary"
+											: ""
+									}`}
+								>
+									<div className="flex items-center gap-2">
+										<div className="font-medium">{food.name}</div>
+										{food.isVerified && (
+											<CheckCircle className="w-4 h-4 text-green-600" />
+										)}
+									</div>
+									<div className="text-sm text-muted-foreground">
+										{food.calories} cal • P: {food.protein}g • C: {food.carbs}g
+										• F: {food.fat}g
+										{food.source === "usda" && (
+											<span className="ml-2 text-xs bg-green-100 text-green-800 px-1 py-0.5 rounded">
+												USDA
+											</span>
+										)}
+									</div>
+								</button>
+							))
+						) : (
+							<div className="text-center text-muted-foreground py-4">
+								No foods found
 							</div>
-						</button>
-					))}
+						)
+					) : // Show recent foods
+					recentFoods.length > 0 ? (
+						<>
+							<div className="text-sm font-medium text-muted-foreground mb-2">
+								Recent Foods
+							</div>
+							{recentFoods.map((food) => (
+								<button
+									key={food.id}
+									onClick={() => setSelectedFood(food)}
+									className={`w-full text-left p-3 rounded-lg hover:bg-muted transition-colors ${
+										selectedFood?.id === food.id
+											? "bg-primary/10 border border-primary"
+											: ""
+									}`}
+								>
+									<div className="flex items-center gap-2">
+										<div className="font-medium">{food.name}</div>
+										{food.isVerified && (
+											<CheckCircle className="w-4 h-4 text-green-600" />
+										)}
+									</div>
+									<div className="text-sm text-muted-foreground">
+										{food.calories} cal • P: {food.protein}g • C: {food.carbs}g
+										• F: {food.fat}g
+										{food.source === "usda" && (
+											<span className="ml-2 text-xs bg-green-100 text-green-800 px-1 py-0.5 rounded">
+												USDA
+											</span>
+										)}
+									</div>
+								</button>
+							))}
+						</>
+					) : (
+						<div className="text-center text-muted-foreground py-4">
+							Start typing to search for foods
+						</div>
+					)}
 				</div>
 			</ScrollArea>
 
@@ -141,7 +304,9 @@ function LogFoodTab({ onClose }: { onClose: () => void }) {
 							<Label>Meal Type</Label>
 							<Select
 								value={mealType}
-								onValueChange={(value: any) => setMealType(value)}
+								onValueChange={(
+									value: "breakfast" | "lunch" | "dinner" | "snacks",
+								) => setMealType(value)}
 							>
 								<SelectTrigger>
 									<SelectValue />
@@ -205,8 +370,12 @@ function LogFoodTab({ onClose }: { onClose: () => void }) {
 						</div>
 					</div>
 
-					<Button onClick={handleLogFood} className="w-full">
-						Log Food
+					<Button
+						onClick={handleLogFood}
+						className="w-full"
+						disabled={isLogging}
+					>
+						{isLogging ? "Logging Food..." : "Log Food"}
 					</Button>
 				</div>
 			)}
@@ -220,42 +389,51 @@ function CreateFoodTab({ onClose }: { onClose: () => void }) {
 	const [protein, setProtein] = useState("");
 	const [carbs, setCarbs] = useState("");
 	const [fat, setFat] = useState("");
+	const [fiber, setFiber] = useState("");
+	const [sugar, setSugar] = useState("");
+	const [sodium, setSodium] = useState("");
 	const [servingSize, setServingSize] = useState("");
 	const [servingUnit, setServingUnit] = useState("g");
+	const [category, setCategory] = useState("");
 	const [isPublic, setIsPublic] = useState(true);
 	const addFood = useStore((state) => state.addFood);
-	const user = useStore((state) => state.user);
 
-	const handleCreateFood = () => {
-		if (
-			!name ||
-			!calories ||
-			!protein ||
-			!carbs ||
-			!fat ||
-			!servingSize ||
-			!user
-		)
+	const handleCreateFood = async () => {
+		if (!name || !calories || !protein || !carbs || !fat || !servingSize)
 			return;
 
-		if (!user) return; // Additional check for TypeScript
+		try {
+			const response = await fetch("/api/foods", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					name,
+					calories,
+					protein,
+					carbs,
+					fat,
+					fiber,
+					sugar,
+					sodium,
+					servingSize,
+					servingUnit,
+					isPublic,
+					category,
+				}),
+			});
 
-		const newFood: Food = {
-			id: Date.now().toString(),
-			name,
-			calories: Number.parseFloat(calories),
-			protein: Number.parseFloat(protein),
-			carbs: Number.parseFloat(carbs),
-			fat: Number.parseFloat(fat),
-			servingSize,
-			servingUnit,
-			isPublic,
-			createdBy: user.id,
-			category: "Custom",
-		};
-
-		addFood(newFood);
-		onClose();
+			if (response.ok) {
+				const newFood = await response.json();
+				addFood(newFood);
+				onClose();
+			} else {
+				console.error("Error creating food");
+			}
+		} catch (error) {
+			console.error("Error creating food:", error);
+		}
 	};
 
 	return (
@@ -322,21 +500,41 @@ function CreateFoodTab({ onClose }: { onClose: () => void }) {
 
 				<div className="grid grid-cols-2 gap-4">
 					<div className="space-y-2">
-						<Label>Carbs (g)</Label>
+						<Label>Fiber (g)</Label>
 						<Input
 							type="number"
 							placeholder="0"
-							value={carbs}
-							onChange={(e) => setCarbs(e.target.value)}
+							value={fiber}
+							onChange={(e) => setFiber(e.target.value)}
 						/>
 					</div>
 					<div className="space-y-2">
-						<Label>Fat (g)</Label>
+						<Label>Sugar (g)</Label>
 						<Input
 							type="number"
 							placeholder="0"
-							value={fat}
-							onChange={(e) => setFat(e.target.value)}
+							value={sugar}
+							onChange={(e) => setSugar(e.target.value)}
+						/>
+					</div>
+				</div>
+
+				<div className="grid grid-cols-2 gap-4">
+					<div className="space-y-2">
+						<Label>Sodium (mg)</Label>
+						<Input
+							type="number"
+							placeholder="0"
+							value={sodium}
+							onChange={(e) => setSodium(e.target.value)}
+						/>
+					</div>
+					<div className="space-y-2">
+						<Label>Category</Label>
+						<Input
+							placeholder="e.g., Fruits, Vegetables"
+							value={category}
+							onChange={(e) => setCategory(e.target.value)}
 						/>
 					</div>
 				</div>
@@ -370,14 +568,35 @@ function CreateMealTab({ onClose }: { onClose: () => void }) {
 	const [selectedFoods, setSelectedFoods] = useState<
 		{ food: Food; servings: number }[]
 	>([]);
+	const [availableFoods, setAvailableFoods] = useState<Food[]>([]);
+	const [isLoading, setIsLoading] = useState(false);
 	const [isPublic, setIsPublic] = useState(true);
 	const addMeal = useStore((state) => state.addMeal);
-	const foods = useStore((state) => state.foods);
-	const user = useStore((state) => state.user);
 
-	const filteredFoods = foods.filter((food) =>
-		food.name.toLowerCase().includes(searchQuery.toLowerCase()),
-	);
+	const searchFoods = useCallback(async () => {
+		setIsLoading(true);
+		try {
+			const response = await fetch(
+				`/api/foods?q=${encodeURIComponent(searchQuery)}`,
+			);
+			if (response.ok) {
+				const data = await response.json();
+				setAvailableFoods(data);
+			}
+		} catch (error) {
+			console.error("Error searching foods:", error);
+		} finally {
+			setIsLoading(false);
+		}
+	}, [searchQuery]);
+
+	useEffect(() => {
+		if (searchQuery.length > 2) {
+			searchFoods();
+		} else {
+			setAvailableFoods([]);
+		}
+	}, [searchQuery, searchFoods]);
 
 	const handleAddFoodToMeal = (food: Food) => {
 		if (selectedFoods.find((f) => f.food.id === food.id)) return;
@@ -406,27 +625,40 @@ function CreateMealTab({ onClose }: { onClose: () => void }) {
 		);
 	};
 
-	const handleCreateMeal = () => {
-		if (!mealName || selectedFoods.length === 0 || !user) return;
+	const handleCreateMeal = async () => {
+		if (!mealName || selectedFoods.length === 0) return;
 
 		const totals = calculateTotals();
-		const newMeal = {
-			id: Date.now().toString(),
-			name: mealName,
-			foods: selectedFoods.map((f) => ({
-				foodId: f.food.id,
-				servings: f.servings,
-			})),
-			totalCalories: Math.round(totals.calories),
-			totalProtein: Math.round(totals.protein),
-			totalCarbs: Math.round(totals.carbs),
-			totalFat: Math.round(totals.fat),
-			isPublic,
-			createdBy: user.id,
-		};
+		try {
+			const response = await fetch("/api/meals", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					name: mealName,
+					foods: selectedFoods.map((f) => ({
+						foodId: f.food.id,
+						servings: f.servings,
+					})),
+					totalCalories: Math.round(totals.calories),
+					totalProtein: Math.round(totals.protein),
+					totalCarbs: Math.round(totals.carbs),
+					totalFat: Math.round(totals.fat),
+					isPublic,
+				}),
+			});
 
-		addMeal(newMeal);
-		onClose();
+			if (response.ok) {
+				const newMeal = await response.json();
+				addMeal(newMeal);
+				onClose();
+			} else {
+				console.error("Error creating meal");
+			}
+		} catch (error) {
+			console.error("Error creating meal:", error);
+		}
 	};
 
 	const totals = calculateTotals();
@@ -459,19 +691,35 @@ function CreateMealTab({ onClose }: { onClose: () => void }) {
 				{searchQuery && (
 					<div className="border rounded-lg max-h-32 overflow-y-auto">
 						<div className="p-2 space-y-1">
-							{filteredFoods.slice(0, 5).map((food) => (
-								<button
-									key={food.id}
-									onClick={() => handleAddFoodToMeal(food)}
-									disabled={selectedFoods.some((f) => f.food.id === food.id)}
-									className="w-full text-left p-2 rounded hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-								>
-									<div className="font-medium text-sm">{food.name}</div>
-									<div className="text-xs text-muted-foreground">
-										{food.calories} cal
-									</div>
-								</button>
-							))}
+							{isLoading ? (
+								<div className="text-center text-muted-foreground py-4">
+									Searching...
+								</div>
+							) : (
+								availableFoods.slice(0, 5).map((food) => (
+									<button
+										key={food.id}
+										onClick={() => handleAddFoodToMeal(food)}
+										disabled={selectedFoods.some((f) => f.food.id === food.id)}
+										className="w-full text-left p-2 rounded hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+									>
+										<div className="flex items-center gap-2">
+											<div className="font-medium text-sm">{food.name}</div>
+											{food.isVerified && (
+												<CheckCircle className="w-3 h-3 text-green-600" />
+											)}
+										</div>
+										<div className="text-xs text-muted-foreground">
+											{food.calories} cal
+											{food.source === "usda" && (
+												<span className="ml-2 text-xs bg-green-100 text-green-800 px-1 py-0.5 rounded">
+													USDA
+												</span>
+											)}
+										</div>
+									</button>
+								))
+							)}
 						</div>
 					</div>
 				)}

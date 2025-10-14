@@ -29,7 +29,9 @@ interface AppState {
 	updateGoal: (id: string, goal: Partial<Goal>) => void;
 	updateGoalProgress: (id: string) => void;
 	addMealEntry: (entry: MealEntry) => void;
-	removeMealEntry: (id: string) => void;
+	removeMealEntry: (id: string) => Promise<boolean>;
+	setMealEntries: (entries: MealEntry[]) => void;
+	setFoods: (foods: Food[]) => void;
 	updateWaterIntake: (amount: number) => void;
 	triggerRefetch: () => void;
 }
@@ -93,10 +95,34 @@ export const useStore = create<AppState>((set) => ({
 			mealEntries: [...state.mealEntries, entry],
 		})),
 
-	removeMealEntry: (id) =>
-		set((state) => ({
-			mealEntries: state.mealEntries.filter((entry) => entry.id !== id),
-		})),
+	removeMealEntry: async (id: string) => {
+		try {
+			const response = await fetch(`/api/meal-entries?id=${id}`, {
+				method: "DELETE",
+			});
+
+			if (response.ok) {
+				set((state) => ({
+					mealEntries: state.mealEntries.filter((entry) => entry.id !== id),
+				}));
+				return true;
+			} else {
+				console.error(
+					"Failed to delete meal entry:",
+					response.status,
+					response.statusText,
+				);
+				return false;
+			}
+		} catch (error) {
+			console.error("Error deleting meal entry:", error);
+			return false;
+		}
+	},
+
+	setMealEntries: (entries) => set({ mealEntries: entries }),
+
+	setFoods: (foods) => set({ foods }),
 
 	updateWaterIntake: (amount) => set({ waterIntake: amount }),
 	triggerRefetch: () =>

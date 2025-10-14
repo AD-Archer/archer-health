@@ -23,6 +23,7 @@ export async function GET(_request: NextRequest) {
 		let macroGoals = user.macroGoals
 			? JSON.parse(user.macroGoals as string)
 			: null;
+		let dailyCalorieGoal = user.dailyCalorieGoal;
 		const hasCompleteProfile =
 			user.currentWeight &&
 			user.height &&
@@ -32,8 +33,8 @@ export async function GET(_request: NextRequest) {
 			user.goalType &&
 			user.weeklyGoal;
 
-		// Auto-calculate macro goals if profile is complete but macro goals are missing
-		if (!macroGoals && hasCompleteProfile) {
+		// Auto-calculate nutrition needs if profile is complete but goals are missing or outdated
+		if ((!macroGoals || !dailyCalorieGoal) && hasCompleteProfile) {
 			const userForCalculation = {
 				id: user.id,
 				name: user.name || "",
@@ -61,12 +62,14 @@ export async function GET(_request: NextRequest) {
 
 			const nutritionNeeds = calculateNutritionNeeds(userForCalculation);
 			macroGoals = nutritionNeeds.macros;
+			dailyCalorieGoal = nutritionNeeds.calories;
 
-			// Save the calculated macro goals to the database
+			// Save the calculated nutrition goals to the database
 			await prisma.user.update({
 				where: { clerkId: userId },
 				data: {
 					macroGoals: JSON.stringify(macroGoals),
+					dailyCalorieGoal: dailyCalorieGoal,
 				},
 			});
 		}
@@ -75,6 +78,7 @@ export async function GET(_request: NextRequest) {
 		const userWithConvertedWeights = {
 			...user,
 			macroGoals,
+			dailyCalorieGoal,
 			// Weights are already stored in kg, no conversion needed
 		};
 
@@ -137,6 +141,7 @@ export async function PUT(request: NextRequest) {
 
 		// Calculate macro goals if we have the necessary data
 		let macroGoals = null;
+		let dailyCalorieGoal: number | undefined;
 		const weightKg = convertToKg(currentWeight);
 		const heightCm = height ? parseFloat(height.toString()) : undefined;
 		const ageNum = age ? parseInt(age.toString(), 10) : undefined;
@@ -177,6 +182,7 @@ export async function PUT(request: NextRequest) {
 			};
 			const nutritionNeeds = calculateNutritionNeeds(userForCalculation);
 			macroGoals = nutritionNeeds.macros;
+			dailyCalorieGoal = nutritionNeeds.calories;
 		}
 
 		// Update or create user profile data
@@ -199,6 +205,7 @@ export async function PUT(request: NextRequest) {
 				name,
 				email,
 				macroGoals: macroGoals ? JSON.stringify(macroGoals) : undefined,
+				dailyCalorieGoal: dailyCalorieGoal,
 			},
 			create: {
 				clerkId: userId,
@@ -218,6 +225,7 @@ export async function PUT(request: NextRequest) {
 				name,
 				email,
 				macroGoals: macroGoals ? JSON.stringify(macroGoals) : undefined,
+				dailyCalorieGoal: dailyCalorieGoal,
 			},
 		});
 

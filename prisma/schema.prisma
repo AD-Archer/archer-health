@@ -71,6 +71,7 @@ model Food {
   createdBy   String
   userId      String
   category    String?
+  usdaFdcId   Int?     // Reference to USDA food if copied from there
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -232,4 +233,82 @@ model PrivacySettings {
   updatedAt        DateTime @updatedAt
 
   user             User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// USDA FoodData Central Models
+model UsdaFoodCategory {
+  id          Int     @id
+  code        String
+  description String
+
+  foods       UsdaFood[]
+}
+
+model UsdaMeasureUnit {
+  id   Int    @id
+  name String @unique
+
+  portions    UsdaFoodPortion[]
+}
+
+model UsdaNutrient {
+  id          Int     @id
+  name        String
+  unitName    String
+  nutrientNbr String  @unique
+  rank        Float?
+
+  foodNutrients UsdaFoodNutrient[]
+}
+
+model UsdaFood {
+  fdcId           Int       @id
+  dataType        String
+  description     String
+  foodCategoryId  Int?
+  publicationDate DateTime?
+
+  foodCategory    UsdaFoodCategory? @relation(fields: [foodCategoryId], references: [id])
+  nutrients       UsdaFoodNutrient[]
+  portions        UsdaFoodPortion[]
+}
+
+model UsdaFoodNutrient {
+  id            Int      @id
+  fdcId         Int
+  nutrientId    Int
+  amount        Float?
+  dataPoints    Int?
+  derivationId  Int?
+  min           Float?
+  max           Float?
+  median        Float?
+  loq           String?
+  footnote      String?
+  minYearAcquired Int?
+  percentDailyValue Float?
+
+  food          UsdaFood     @relation(fields: [fdcId], references: [fdcId], onDelete: Cascade)
+  nutrient      UsdaNutrient @relation(fields: [nutrientId], references: [id], onDelete: Cascade)
+
+  @@unique([fdcId, nutrientId])
+}
+
+model UsdaFoodPortion {
+  id                  Int      @id
+  fdcId               Int
+  seqNum              Int
+  amount              Float?
+  measureUnitId       Int?
+  portionDescription  String?
+  modifier            String?
+  gramWeight          Float?
+  dataPoints          Int?
+  footnote            String?
+  minYearAcquired     Int?
+
+  food                UsdaFood         @relation(fields: [fdcId], references: [fdcId], onDelete: Cascade)
+  measureUnit         UsdaMeasureUnit? @relation(fields: [measureUnitId], references: [id])
+
+  @@unique([fdcId, seqNum])
 }

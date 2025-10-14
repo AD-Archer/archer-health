@@ -4,16 +4,16 @@ import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useStore } from "@/lib/store";
 
-export function DailyProgress() {
+export function DailyProgress({ selectedDate }: { selectedDate: Date }) {
 	const user = useStore((state) => state.user);
 	const mealEntries = useStore((state) => state.mealEntries);
 
-	const today = new Date().toISOString().split("T")[0];
-	const todayEntries = mealEntries.filter((entry) =>
-		entry.date.startsWith(today),
+	const selectedDateString = selectedDate.toISOString().split("T")[0];
+	const selectedDateEntries = mealEntries.filter((entry) =>
+		entry.date.startsWith(selectedDateString),
 	);
 
-	const totals = todayEntries.reduce(
+	const totals = selectedDateEntries.reduce(
 		(acc, entry) => ({
 			calories: acc.calories + entry.calories,
 			protein: acc.protein + entry.protein,

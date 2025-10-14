@@ -1,0 +1,16 @@
+services:
+  seeder:
+    build:
+      context: .
+      dockerfile: Dockerfile.seeder
+    env_file:
+      - .env
+    profiles: ["seed"]
+
+  app:
+    build: .
+    env_file:
+      - .env
+    ports:
+      - "3765:3000"
+    command: sh -c "npx prisma migrate deploy && npm start"

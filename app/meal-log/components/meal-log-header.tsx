@@ -1,12 +1,17 @@
 "use client";
 
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
-export function MealLogHeader() {
-	const [date, setDate] = useState(new Date());
+interface MealLogHeaderProps {
+	selectedDate: Date;
+	onDateChange: (date: Date) => void;
+}
 
+export function MealLogHeader({
+	selectedDate,
+	onDateChange,
+}: MealLogHeaderProps) {
 	const formatDate = (date: Date) => {
 		return date.toLocaleDateString("en-US", {
 			weekday: "long",
@@ -17,13 +22,13 @@ export function MealLogHeader() {
 	};
 
 	const changeDate = (days: number) => {
-		const newDate = new Date(date);
+		const newDate = new Date(selectedDate);
 		newDate.setDate(newDate.getDate() + days);
-		setDate(newDate);
+		onDateChange(newDate);
 	};
 
 	const goToToday = () => {
-		setDate(new Date());
+		onDateChange(new Date());
 	};
 
 	return (
@@ -43,7 +48,7 @@ export function MealLogHeader() {
 					className="min-w-[200px] bg-transparent"
 				>
 					<Calendar className="w-4 h-4 mr-2" />
-					{formatDate(date)}
+					{formatDate(selectedDate)}
 				</Button>
 				<Button variant="outline" size="icon" onClick={() => changeDate(1)}>
 					<ChevronRight className="w-4 h-4" />

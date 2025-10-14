@@ -1,7 +1,8 @@
 "use client";
 
-import { Plus, Trash2 } from "lucide-react";
+import { Loader2, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
+import type { MealEntry } from "@/app/data/data";
 import { AddEntryModal } from "@/components/add-entry-modal";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -9,19 +10,33 @@ import { useStore } from "@/lib/store";
 
 interface MealTypeSectionProps {
 	mealType: "breakfast" | "lunch" | "dinner" | "snacks";
+	selectedDate: Date;
 }
 
-export function MealTypeSection({ mealType }: MealTypeSectionProps) {
+export function MealTypeSection({
+	mealType,
+	selectedDate,
+}: MealTypeSectionProps) {
 	const [isModalOpen, setIsModalOpen] = useState(false);
+	const [deletingEntries, setDeletingEntries] = useState<Set<string>>(
+		new Set(),
+	);
 	const mealEntries = useStore((state) => state.mealEntries);
 	const foods = useStore((state) => state.foods);
 	const meals = useStore((state) => state.meals);
 	const removeMealEntry = useStore((state) => state.removeMealEntry);
 
-	const today = new Date().toISOString().split("T")[0];
+	const selectedDateString = selectedDate.toISOString().split("T")[0];
 	const entries = mealEntries.filter(
-		(entry) => entry.date.startsWith(today) && entry.mealType === mealType,
+		(entry) =>
+			entry.date.startsWith(selectedDateString) && entry.mealType === mealType,
 	);
+
+	console.log(`MealTypeSection ${mealType}:`, {
+		entries,
+		foods,
+		selectedDateString,
+	});
 
 	const totals = entries.reduce(
 		(acc, entry) => ({
@@ -37,7 +52,24 @@ export function MealTypeSection({ mealType }: MealTypeSectionProps) {
 		return mealType.charAt(0).toUpperCase() + mealType.slice(1);
 	};
 
-	const getEntryName = (entry: any) => {
+	const handleDeleteEntry = async (entryId: string) => {
+		setDeletingEntries((prev) => new Set(prev).add(entryId));
+		try {
+			const success = await removeMealEntry(entryId);
+			if (!success) {
+				// Could show a toast notification here
+				console.error("Failed to delete entry");
+			}
+		} finally {
+			setDeletingEntries((prev) => {
+				const newSet = new Set(prev);
+				newSet.delete(entryId);
+				return newSet;
+			});
+		}
+	};
+
+	const getEntryName = (entry: MealEntry) => {
 		if (entry.foodId) {
 			const food = foods.find((f) => f.id === entry.foodId);
 			return food?.name || "Unknown Food";
@@ -92,9 +124,14 @@ export function MealTypeSection({ mealType }: MealTypeSectionProps) {
 								<Button
 									variant="ghost"
 									size="icon"
-									onClick={() => removeMealEntry(entry.id)}
+									onClick={() => handleDeleteEntry(entry.id)}
+									disabled={deletingEntries.has(entry.id)}
 								>
-									<Trash2 className="w-4 h-4 text-destructive" />
+									{deletingEntries.has(entry.id) ? (
+										<Loader2 className="w-4 h-4 animate-spin" />
+									) : (
+										<Trash2 className="w-4 h-4 text-destructive" />
+									)}
 								</Button>
 							</div>
 						))}
@@ -102,7 +139,11 @@ export function MealTypeSection({ mealType }: MealTypeSectionProps) {
 				)}
 			</Card>
 
-			<AddEntryModal open={isModalOpen} onOpenChange={setIsModalOpen} />
+			<AddEntryModal
+				open={isModalOpen}
+				onOpenChange={setIsModalOpen}
+				selectedDate={selectedDate}
+			/>
 		</>
 	);
 }

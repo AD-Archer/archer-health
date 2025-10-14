@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { type NextRequest, NextResponse } from "next/server";
 import { prisma } from "../../../lib/prisma";
 
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
 	try {
 		const { userId } = await auth();
 		if (!userId) {
@@ -46,14 +46,17 @@ export async function GET(_request: NextRequest) {
 			}
 		}
 
-		// Get today's date in YYYY-MM-DD format
-		const today = new Date().toISOString().split("T")[0];
+		// Get date from query parameter or default to today
+		const { searchParams } = new URL(request.url);
+		const requestedDate = searchParams.get("date");
+		const targetDate = requestedDate || new Date().toISOString().split("T")[0];
 
-		// Get all meal entries for today
+		// Get all meal entries for the target date
+		// Handle both date-only format (YYYY-MM-DD) and full datetime format
 		const mealEntries = await prisma.mealEntry.findMany({
 			where: {
 				userId: user.id,
-				date: today,
+				OR: [{ date: targetDate }, { date: { startsWith: targetDate } }],
 			},
 		});
 
@@ -66,7 +69,7 @@ export async function GET(_request: NextRequest) {
 		return NextResponse.json({
 			totalCalories,
 			mealEntries,
-			date: today,
+			date: targetDate,
 		});
 	} catch (error) {
 		console.error("Error fetching today's meals:", error);

@@ -118,9 +118,9 @@ const calculateWaterGoal = (
 export default function OnboardingPage() {
 	const router = useRouter();
 	const { user, isLoaded } = useUser();
-	const { displayWeightToKg } = useUnitConversion();
+	const { displayWeightToKg, displayWeeklyGoalToKg } = useUnitConversion();
 	const [formData, setFormData] = useState<UserProfile>({});
-	const [waterUnit, setWaterUnit] = useState<string>("oz");
+	const [waterUnit] = useState<string>("oz");
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState("");
 
@@ -178,7 +178,12 @@ export default function OnboardingPage() {
 				heightInches: inches,
 			}));
 		}
-	}, [formData.units]);
+	}, [
+		formData.units,
+		formData.height,
+		formData.heightFeet,
+		formData.heightInches,
+	]);
 
 	// Clear weekly goal when goal type changes to maintain
 	useEffect(() => {
@@ -213,7 +218,7 @@ export default function OnboardingPage() {
 				);
 			}
 			if (formData.weeklyGoal) {
-				finalData.weeklyGoal = displayWeightToKg(
+				finalData.weeklyGoal = displayWeeklyGoalToKg(
 					formData.weeklyGoal,
 					formData.units || "imperial",
 				);
@@ -557,41 +562,6 @@ export default function OnboardingPage() {
 										))}
 									</SelectContent>
 								</Select>
-							</div>
-							{/* Water Goal - Auto-calculated */}
-							<div className="space-y-2">
-								<Label htmlFor="waterGoal">
-									Daily Water Goal (Auto-calculated)
-								</Label>
-								<div className="flex gap-2">
-									<Input
-										id="waterGoal"
-										type="number"
-										value={formData.waterGoal ?? ""}
-										onChange={(e) => {
-											const value = e.target.value;
-											setFormData({
-												...formData,
-												waterGoal: value === "" ? undefined : Number(value),
-											});
-										}}
-										placeholder="Auto-calculated based on your weight and activity"
-									/>
-									<Select value={waterUnit} onValueChange={setWaterUnit}>
-										<SelectTrigger id="waterUnit" className="w-20">
-											<SelectValue />
-										</SelectTrigger>
-										<SelectContent>
-											<SelectItem value="oz">oz</SelectItem>
-											<SelectItem value="ml">ml</SelectItem>
-										</SelectContent>
-									</Select>
-								</div>
-								<p className="text-xs text-muted-foreground">
-									Calculated based on your weight ({formData.currentWeight}{" "}
-									{formData.units === "imperial" ? "lbs" : "kg"}) and activity
-									level. You can adjust this value if needed.
-								</p>
 							</div>
 							{/* Save Button */}
 							{error && (
