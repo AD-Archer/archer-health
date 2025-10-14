@@ -294,8 +294,6 @@ function LogFoodTab({
 	onClose,
 	selectedDate,
 	initialSearchQuery,
-	showMealDBWarning,
-	recipeData,
 }: {
 	onClose: () => void;
 	selectedDate?: Date;

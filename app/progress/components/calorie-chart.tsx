@@ -20,14 +20,6 @@ import {
 } from "@/components/ui/select";
 import { useNutritionData } from "@/lib/use-nutrition-data";
 
-interface CalorieData {
-	date: string;
-	calories: number;
-	protein: number;
-	carbs: number;
-	fat: number;
-	mealsLogged: number;
-}
 
 export function CalorieChart() {
 	const [timeRange, setTimeRange] = useState("30days");

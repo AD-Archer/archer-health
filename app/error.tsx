@@ -1,5 +1,8 @@
 "use client";
 
+// Force edge runtime to avoid Clerk prerendering issues
+export const runtime = "edge";
+
 import { useUser } from "@clerk/nextjs";
 import { AlertTriangle, Home, RefreshCw } from "lucide-react";
 import Link from "next/link";

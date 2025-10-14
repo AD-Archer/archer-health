@@ -30,7 +30,7 @@ interface HelpModalProps {
 
 export function HelpModal({ open, onOpenChange }: HelpModalProps) {
 	const [activeTab, setActiveTab] = useState<"faq" | "contact">("faq");
-	const { user } = useUser();
+	const { user } = useUser() || { user: null };
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [includeContactInfo, setIncludeContactInfo] = useState(false);
 	const [formData, setFormData] = useState({

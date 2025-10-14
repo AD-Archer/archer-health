@@ -5,18 +5,47 @@ import { type Prisma, PrismaClient } from "../lib/generated/prisma";
 
 const prisma = new PrismaClient();
 
-const DATA_DIR = path.join(
-	process.cwd(),
-	"data",
-	"FoodData_Central_csv_2025-04-24",
-);
+const DATA_ROOT = path.join(process.cwd(), "data");
 
-async function seedFoodCategories() {
+// Function to find all CSV files in data and subfolders
+function findCsvFiles() {
+	const csvPaths: Record<string, string> = {};
+
+	function scanDir(dir: string) {
+		const items = fs.readdirSync(dir);
+		for (const item of items) {
+			const fullPath = path.join(dir, item);
+			const stat = fs.statSync(fullPath);
+			if (stat.isDirectory()) {
+				scanDir(fullPath);
+			} else if (item.endsWith(".csv")) {
+				const name = path.basename(item, ".csv");
+				if (!csvPaths[name] || fullPath.includes("2025-04-24")) {
+					// Prefer the latest folder
+					csvPaths[name] = fullPath;
+				}
+			}
+		}
+	}
+
+	scanDir(DATA_ROOT);
+	return csvPaths;
+}
+
+async function seedFoodCategories(): Promise<{
+	inserted: number;
+	skipped: number;
+	filtered: number;
+	adjusted: number;
+	time: number;
+}> {
 	console.log("Seeding food categories...");
+	const startTime = Date.now();
 	const categories: Prisma.UsdaFoodCategoryCreateManyInput[] = [];
+	const csvPaths = findCsvFiles();
 
-	return new Promise<void>((resolve, reject) => {
-		fs.createReadStream(path.join(DATA_DIR, "food_category.csv"))
+	return new Promise((resolve, reject) => {
+		fs.createReadStream(csvPaths.food_category)
 			.pipe(csv())
 			.on("data", (row) => {
 				categories.push({
@@ -27,12 +56,22 @@ async function seedFoodCategories() {
 			})
 			.on("end", async () => {
 				try {
-					await prisma.usdaFoodCategory.createMany({
-						data: categories,
-						skipDuplicates: true,
-					});
-					console.log(`Seeded ${categories.length} food categories`);
-					resolve();
+					let inserted = 0;
+					for (const category of categories) {
+						await prisma.usdaFoodCategory.upsert({
+							where: { id: category.id },
+							update: category,
+							create: category,
+						});
+						inserted++;
+					}
+					const endTime = Date.now();
+					const time = (endTime - startTime) / 1000;
+					const skipped = 0; // upsert handles updates
+					console.log(
+						`Seeded ${inserted} food categories (updated existing if any) in ${time} seconds`,
+					);
+					resolve({ inserted, skipped, filtered: 0, adjusted: 0, time });
 				} catch (error) {
 					reject(error);
 				}
@@ -41,12 +80,20 @@ async function seedFoodCategories() {
 	});
 }
 
-async function seedMeasureUnits() {
+async function seedMeasureUnits(): Promise<{
+	inserted: number;
+	skipped: number;
+	filtered: number;
+	adjusted: number;
+	time: number;
+}> {
 	console.log("Seeding measure units...");
+	const startTime = Date.now();
 	const units: Prisma.UsdaMeasureUnitCreateManyInput[] = [];
+	const csvPaths = findCsvFiles();
 
-	return new Promise<void>((resolve, reject) => {
-		fs.createReadStream(path.join(DATA_DIR, "measure_unit.csv"))
+	return new Promise((resolve, reject) => {
+		fs.createReadStream(csvPaths.measure_unit)
 			.pipe(csv())
 			.on("data", (row) => {
 				units.push({
@@ -56,12 +103,22 @@ async function seedMeasureUnits() {
 			})
 			.on("end", async () => {
 				try {
-					await prisma.usdaMeasureUnit.createMany({
-						data: units,
-						skipDuplicates: true,
-					});
-					console.log(`Seeded ${units.length} measure units`);
-					resolve();
+					let inserted = 0;
+					for (const unit of units) {
+						await prisma.usdaMeasureUnit.upsert({
+							where: { id: unit.id },
+							update: unit,
+							create: unit,
+						});
+						inserted++;
+					}
+					const endTime = Date.now();
+					const time = (endTime - startTime) / 1000;
+					const skipped = 0; // upsert handles updates
+					console.log(
+						`Seeded ${inserted} measure units (updated existing if any) in ${time} seconds`,
+					);
+					resolve({ inserted, skipped, filtered: 0, adjusted: 0, time });
 				} catch (error) {
 					reject(error);
 				}
@@ -70,12 +127,20 @@ async function seedMeasureUnits() {
 	});
 }
 
-async function seedNutrients() {
+async function seedNutrients(): Promise<{
+	inserted: number;
+	skipped: number;
+	filtered: number;
+	adjusted: number;
+	time: number;
+}> {
 	console.log("Seeding nutrients...");
+	const startTime = Date.now();
 	const nutrients: Prisma.UsdaNutrientCreateManyInput[] = [];
+	const csvPaths = findCsvFiles();
 
-	return new Promise<void>((resolve, reject) => {
-		fs.createReadStream(path.join(DATA_DIR, "nutrient.csv"))
+	return new Promise((resolve, reject) => {
+		fs.createReadStream(csvPaths.nutrient)
 			.pipe(csv())
 			.on("data", (row) => {
 				nutrients.push({
@@ -88,12 +153,22 @@ async function seedNutrients() {
 			})
 			.on("end", async () => {
 				try {
-					await prisma.usdaNutrient.createMany({
-						data: nutrients,
-						skipDuplicates: true,
-					});
-					console.log(`Seeded ${nutrients.length} nutrients`);
-					resolve();
+					let inserted = 0;
+					for (const nutrient of nutrients) {
+						await prisma.usdaNutrient.upsert({
+							where: { id: nutrient.id },
+							update: nutrient,
+							create: nutrient,
+						});
+						inserted++;
+					}
+					const endTime = Date.now();
+					const time = (endTime - startTime) / 1000;
+					const skipped = 0; // upsert handles updates
+					console.log(
+						`Seeded ${inserted} nutrients (updated existing if any) in ${time} seconds`,
+					);
+					resolve({ inserted, skipped, filtered: 0, adjusted: 0, time });
 				} catch (error) {
 					reject(error);
 				}
@@ -102,12 +177,20 @@ async function seedNutrients() {
 	});
 }
 
-async function seedFoods() {
+async function seedFoods(): Promise<{
+	inserted: number;
+	skipped: number;
+	filtered: number;
+	adjusted: number;
+	time: number;
+}> {
 	console.log("Seeding foods...");
+	const startTime = Date.now();
 	const foods: Prisma.UsdaFoodCreateManyInput[] = [];
+	const csvPaths = findCsvFiles();
 
-	return new Promise<void>((resolve, reject) => {
-		fs.createReadStream(path.join(DATA_DIR, "food.csv"))
+	return new Promise((resolve, reject) => {
+		fs.createReadStream(csvPaths.food)
 			.pipe(csv())
 			.on("data", (row) => {
 				foods.push({
@@ -123,53 +206,71 @@ async function seedFoods() {
 				});
 			})
 			.on("end", async () => {
-				// Get existing category IDs to filter valid foods
+				// Get existing category IDs to validate and fix invalid ones
 				const existingCategoryIds = new Set(
 					(
 						await prisma.usdaFoodCategory.findMany({ select: { id: true } })
 					).map((c) => c.id),
 				);
-				const validFoods = foods.filter(
-					(food) =>
-						food.foodCategoryId === null ||
-						existingCategoryIds.has(food.foodCategoryId as number),
-				);
+				let invalidCategoryCount = 0;
+				const processedFoods = foods.map((food) => {
+					if (
+						food.foodCategoryId !== null &&
+						!existingCategoryIds.has(food.foodCategoryId as number)
+					) {
+						invalidCategoryCount++;
+						return { ...food, foodCategoryId: null };
+					}
+					return food;
+				});
 				console.log(
-					`Filtered out ${foods.length - validFoods.length} foods with invalid category IDs`,
+					`Set foodCategoryId to null for ${invalidCategoryCount} foods with invalid category IDs (reason: category ID not found in database)`,
 				);
 
-				// Process in batches to avoid memory issues
-				const batchSize = 1000;
-				for (let i = 0; i < validFoods.length; i += batchSize) {
-					const batch = validFoods.slice(i, i + batchSize);
+				let totalInserted = 0;
+				for (const food of processedFoods) {
 					try {
-						await prisma.usdaFood.createMany({
-							data: batch,
-							skipDuplicates: true,
+						await prisma.usdaFood.upsert({
+							where: { fdcId: food.fdcId },
+							update: food,
+							create: food,
 						});
-						console.log(
-							`Seeded batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(validFoods.length / batchSize)}`,
-						);
+						totalInserted++;
 					} catch (error) {
-						console.error(
-							`Error seeding batch ${Math.floor(i / batchSize) + 1}:`,
-							error,
-						);
+						console.error(`Error upserting food ${food.fdcId}:`, error);
 					}
 				}
-				console.log(`Seeded ${validFoods.length} foods`);
-				resolve();
+				const endTime = Date.now();
+				const time = (endTime - startTime) / 1000;
+				console.log(
+					`Seeded ${totalInserted} foods (updated existing if any, ${invalidCategoryCount} had invalid categories set to null) in ${time} seconds`,
+				);
+				resolve({
+					inserted: totalInserted,
+					skipped: 0, // upsert handles updates
+					filtered: 0,
+					adjusted: invalidCategoryCount,
+					time,
+				});
 			})
 			.on("error", reject);
 	});
 }
 
-async function seedFoodNutrients() {
+async function seedFoodNutrients(): Promise<{
+	inserted: number;
+	skipped: number;
+	filtered: number;
+	adjusted: number;
+	time: number;
+}> {
 	console.log("Seeding food nutrients...");
+	const startTime = Date.now();
 	const foodNutrients: Prisma.UsdaFoodNutrientCreateManyInput[] = [];
+	const csvPaths = findCsvFiles();
 
-	return new Promise<void>((resolve, reject) => {
-		fs.createReadStream(path.join(DATA_DIR, "food_nutrient.csv"))
+	return new Promise((resolve, reject) => {
+		fs.createReadStream(csvPaths.food_nutrient)
 			.pipe(csv())
 			.on("data", (row) => {
 				foodNutrients.push({
@@ -195,38 +296,67 @@ async function seedFoodNutrients() {
 				});
 			})
 			.on("end", async () => {
-				// Process in batches
-				const batchSize = 5000;
-				for (let i = 0; i < foodNutrients.length; i += batchSize) {
-					const batch = foodNutrients.slice(i, i + batchSize);
+				// Get existing fdcIds to filter valid food nutrients
+				const existingFdcIds = new Set(
+					(await prisma.usdaFood.findMany({ select: { fdcId: true } })).map(
+						(f) => f.fdcId,
+					),
+				);
+				const validFoodNutrients = foodNutrients.filter((nutrient) =>
+					existingFdcIds.has(nutrient.fdcId),
+				);
+				const filtered = foodNutrients.length - validFoodNutrients.length;
+				console.log(
+					`Filtered out ${filtered} food nutrients with invalid fdcId (reason: food not found in database)`,
+				);
+
+				let totalInserted = 0;
+				for (const nutrient of validFoodNutrients) {
 					try {
-						await prisma.usdaFoodNutrient.createMany({
-							data: batch,
-							skipDuplicates: true,
+						await prisma.usdaFoodNutrient.upsert({
+							where: { id: nutrient.id },
+							update: nutrient,
+							create: nutrient,
 						});
-						console.log(
-							`Seeded food nutrients batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(foodNutrients.length / batchSize)}`,
-						);
+						totalInserted++;
 					} catch (error) {
 						console.error(
-							`Error seeding food nutrients batch ${Math.floor(i / batchSize) + 1}:`,
+							`Error upserting food nutrient ${nutrient.id}:`,
 							error,
 						);
 					}
 				}
-				console.log(`Seeded ${foodNutrients.length} food nutrients`);
-				resolve();
+				const endTime = Date.now();
+				const time = (endTime - startTime) / 1000;
+				console.log(
+					`Seeded ${totalInserted} food nutrients (updated existing if any, ${filtered} filtered out for invalid fdcId) in ${time} seconds`,
+				);
+				resolve({
+					inserted: totalInserted,
+					skipped: 0, // upsert handles updates
+					filtered,
+					adjusted: 0,
+					time,
+				});
 			})
 			.on("error", reject);
 	});
 }
 
-async function seedFoodPortions() {
+async function seedFoodPortions(): Promise<{
+	inserted: number;
+	skipped: number;
+	filtered: number;
+	adjusted: number;
+	time: number;
+}> {
 	console.log("Seeding food portions...");
+	const startTime = Date.now();
 	const foodPortions: Prisma.UsdaFoodPortionCreateManyInput[] = [];
+	const csvPaths = findCsvFiles();
 
-	return new Promise<void>((resolve, reject) => {
-		fs.createReadStream(path.join(DATA_DIR, "food_portion.csv"))
+	return new Promise((resolve, reject) => {
+		fs.createReadStream(csvPaths.food_portion)
 			.pipe(csv())
 			.on("data", (row) => {
 				foodPortions.push({
@@ -248,317 +378,131 @@ async function seedFoodPortions() {
 				});
 			})
 			.on("end", async () => {
-				// Process in batches
-				const batchSize = 1000;
-				for (let i = 0; i < foodPortions.length; i += batchSize) {
-					const batch = foodPortions.slice(i, i + batchSize);
+				// Get existing fdcIds and measureUnitIds
+				const existingFdcIds = new Set(
+					(await prisma.usdaFood.findMany({ select: { fdcId: true } })).map(
+						(f) => f.fdcId,
+					),
+				);
+				const existingMeasureUnitIds = new Set(
+					(await prisma.usdaMeasureUnit.findMany({ select: { id: true } })).map(
+						(u) => u.id,
+					),
+				);
+				let invalidMeasureUnitCount = 0;
+				const processedPortions = foodPortions.map((portion) => {
+					if (
+						portion.measureUnitId !== null &&
+						!existingMeasureUnitIds.has(portion.measureUnitId as number)
+					) {
+						invalidMeasureUnitCount++;
+						return { ...portion, measureUnitId: null };
+					}
+					return portion;
+				});
+				console.log(
+					`Set measureUnitId to null for ${invalidMeasureUnitCount} portions with invalid measure unit IDs (reason: measure unit ID not found in database)`,
+				);
+				const validFoodPortions = processedPortions.filter((portion) =>
+					existingFdcIds.has(portion.fdcId),
+				);
+				const filtered = processedPortions.length - validFoodPortions.length;
+				console.log(
+					`Filtered out ${filtered} food portions with invalid fdcId (reason: food not found in database)`,
+				);
+
+				let totalInserted = 0;
+				for (const portion of validFoodPortions) {
 					try {
-						await prisma.usdaFoodPortion.createMany({
-							data: batch,
-							skipDuplicates: true,
+						await prisma.usdaFoodPortion.upsert({
+							where: { id: portion.id },
+							update: portion,
+							create: portion,
 						});
-						console.log(
-							`Seeded food portions batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(foodPortions.length / batchSize)}`,
-						);
+						totalInserted++;
 					} catch (error) {
-						console.error(
-							`Error seeding food portions batch ${Math.floor(i / batchSize) + 1}:`,
-							error,
-						);
+						console.error(`Error upserting food portion ${portion.id}:`, error);
 					}
 				}
-				console.log(`Seeded ${foodPortions.length} food portions`);
-				resolve();
+				const endTime = Date.now();
+				const time = (endTime - startTime) / 1000;
+				console.log(
+					`Seeded ${totalInserted} food portions (updated existing if any, ${filtered} filtered out for invalid fdcId, ${invalidMeasureUnitCount} had invalid measure units set to null) in ${time} seconds`,
+				);
+				resolve({
+					inserted: totalInserted,
+					skipped: 0, // upsert handles updates
+					filtered,
+					adjusted: invalidMeasureUnitCount,
+					time,
+				});
 			})
 			.on("error", reject);
 	});
 }
 
-async function seedRecipes() {
-	console.log("Seeding recipes...");
-
-	// Get the first user or create a system user for recipes
-	let systemUser = await prisma.user.findFirst();
-	if (!systemUser) {
-		systemUser = await prisma.user.create({
-			data: {
-				clerkId: "system-recipes",
-				email: "system@archerhealth.com",
-				name: "Archer Health",
-				isPremium: true,
-			},
-		});
-	}
-
-	const recipes = [
-		{
-			name: "Grilled Salmon with Asparagus",
-			description:
-				"A healthy and delicious salmon dish packed with omega-3 fatty acids and fresh vegetables.",
-			image: "https://picsum.photos/400/300?random=1",
-			category: "Dinner",
-			cuisine: "American",
-			prepTime: 10,
-			cookTime: 15,
-			servings: 2,
-			difficulty: "Easy",
-			calories: 420,
-			nutrition: {
-				protein: 35,
-				carbs: 8,
-				fat: 28,
-				fiber: 4,
-				sugar: 3,
-			},
-			ingredients: [
-				{
-					id: "1",
-					name: "Salmon fillet",
-					amount: 8,
-					unit: "oz",
-					notes: "skin-on",
-				},
-				{
-					id: "2",
-					name: "Asparagus",
-					amount: 1,
-					unit: "bunch",
-					notes: "trimmed",
-				},
-				{ id: "3", name: "Olive oil", amount: 2, unit: "tbsp" },
-				{
-					id: "4",
-					name: "Lemon",
-					amount: 1,
-					unit: "whole",
-					notes: "juiced and zested",
-				},
-				{ id: "5", name: "Garlic", amount: 2, unit: "cloves", notes: "minced" },
-				{ id: "6", name: "Salt", amount: 1, unit: "tsp" },
-				{
-					id: "7",
-					name: "Black pepper",
-					amount: 0.5,
-					unit: "tsp",
-					notes: "freshly ground",
-				},
-			],
-			instructions: [
-				"Preheat grill to medium-high heat (about 400°F).",
-				"Pat salmon dry and season both sides with salt and pepper.",
-				"In a small bowl, whisk together olive oil, lemon juice, lemon zest, and minced garlic.",
-				"Brush asparagus with half the olive oil mixture and season with salt.",
-				"Brush salmon with remaining olive oil mixture.",
-				"Place salmon skin-side down on grill and asparagus alongside.",
-				"Grill salmon for 4-5 minutes per side, or until internal temperature reaches 145°F.",
-				"Grill asparagus for 6-8 minutes, turning occasionally until tender-crisp.",
-				"Serve immediately with lemon wedges.",
-			],
-			tags: ["healthy", "omega-3", "grilled", "low-carb", "high-protein"],
-		},
-		{
-			name: "Lemon Herb Chicken Salad",
-			description:
-				"A light and refreshing chicken salad with fresh herbs and a tangy lemon dressing.",
-			image: "https://picsum.photos/400/300?random=2",
-			category: "Lunch",
-			cuisine: "Mediterranean",
-			prepTime: 15,
-			cookTime: 0,
-			servings: 2,
-			difficulty: "Easy",
-			calories: 320,
-			nutrition: {
-				protein: 28,
-				carbs: 12,
-				fat: 18,
-				fiber: 3,
-				sugar: 4,
-			},
-			ingredients: [
-				{
-					id: "1",
-					name: "Grilled chicken breast",
-					amount: 8,
-					unit: "oz",
-					notes: "cooked and diced",
-				},
-				{ id: "2", name: "Mixed greens", amount: 4, unit: "cups" },
-				{
-					id: "3",
-					name: "Cherry tomatoes",
-					amount: 1,
-					unit: "cup",
-					notes: "halved",
-				},
-				{
-					id: "4",
-					name: "Cucumber",
-					amount: 1,
-					unit: "medium",
-					notes: "sliced",
-				},
-				{
-					id: "5",
-					name: "Red onion",
-					amount: 0.25,
-					unit: "cup",
-					notes: "thinly sliced",
-				},
-				{
-					id: "6",
-					name: "Fresh parsley",
-					amount: 0.25,
-					unit: "cup",
-					notes: "chopped",
-				},
-				{
-					id: "7",
-					name: "Fresh mint",
-					amount: 2,
-					unit: "tbsp",
-					notes: "chopped",
-				},
-				{ id: "8", name: "Lemon juice", amount: 2, unit: "tbsp" },
-				{ id: "9", name: "Olive oil", amount: 2, unit: "tbsp" },
-				{ id: "10", name: "Dijon mustard", amount: 1, unit: "tsp" },
-				{ id: "11", name: "Salt", amount: 0.5, unit: "tsp" },
-				{ id: "12", name: "Black pepper", amount: 0.25, unit: "tsp" },
-			],
-			instructions: [
-				"In a large bowl, whisk together lemon juice, olive oil, Dijon mustard, salt, and pepper.",
-				"Add diced chicken, cherry tomatoes, cucumber, red onion, parsley, and mint to the bowl.",
-				"Toss everything together until well coated with the dressing.",
-				"Divide mixed greens onto two plates.",
-				"Top each plate with the chicken salad mixture.",
-				"Serve immediately.",
-			],
-			tags: ["healthy", "salad", "chicken", "fresh", "light"],
-		},
-		{
-			name: "Mediterranean Quinoa Bowl",
-			description:
-				"A nutritious and colorful quinoa bowl with Mediterranean flavors and fresh vegetables.",
-			image: "https://picsum.photos/400/300?random=3",
-			category: "Lunch",
-			cuisine: "Mediterranean",
-			prepTime: 15,
-			cookTime: 15,
-			servings: 2,
-			difficulty: "Easy",
-			calories: 380,
-			nutrition: {
-				protein: 12,
-				carbs: 45,
-				fat: 16,
-				fiber: 6,
-				sugar: 8,
-			},
-			ingredients: [
-				{ id: "1", name: "Quinoa", amount: 0.75, unit: "cup", notes: "rinsed" },
-				{ id: "2", name: "Water", amount: 1.5, unit: "cups" },
-				{
-					id: "3",
-					name: "Cherry tomatoes",
-					amount: 1,
-					unit: "cup",
-					notes: "halved",
-				},
-				{
-					id: "4",
-					name: "Cucumber",
-					amount: 1,
-					unit: "medium",
-					notes: "diced",
-				},
-				{
-					id: "5",
-					name: "Red onion",
-					amount: 0.25,
-					unit: "cup",
-					notes: "diced",
-				},
-				{
-					id: "6",
-					name: "Kalamata olives",
-					amount: 0.25,
-					unit: "cup",
-					notes: "pitted and halved",
-				},
-				{
-					id: "7",
-					name: "Feta cheese",
-					amount: 0.25,
-					unit: "cup",
-					notes: "crumbled",
-				},
-				{
-					id: "8",
-					name: "Fresh parsley",
-					amount: 0.25,
-					unit: "cup",
-					notes: "chopped",
-				},
-				{ id: "9", name: "Lemon juice", amount: 2, unit: "tbsp" },
-				{ id: "10", name: "Olive oil", amount: 2, unit: "tbsp" },
-				{ id: "11", name: "Dried oregano", amount: 0.5, unit: "tsp" },
-				{ id: "12", name: "Salt", amount: 0.5, unit: "tsp" },
-				{ id: "13", name: "Black pepper", amount: 0.25, unit: "tsp" },
-			],
-			instructions: [
-				"Rinse quinoa under cold water until water runs clear.",
-				"In a medium saucepan, bring water to a boil. Add quinoa, reduce heat to low, cover, and simmer for 15 minutes.",
-				"Remove from heat and let stand, covered, for 5 minutes. Fluff with a fork.",
-				"In a large bowl, whisk together lemon juice, olive oil, oregano, salt, and pepper.",
-				"Add cooked quinoa, cherry tomatoes, cucumber, red onion, olives, and parsley to the bowl.",
-				"Toss everything together until well coated.",
-				"Divide into two bowls and top each with crumbled feta cheese.",
-				"Serve warm or at room temperature.",
-			],
-			tags: ["healthy", "vegetarian", "quinoa", "mediterranean", "bowl"],
-		},
-	];
-
-	for (const recipe of recipes) {
-		// Check if recipe already exists by name
-		const existingRecipe = await prisma.recipe.findFirst({
-			where: { name: recipe.name },
-		});
-
-		if (existingRecipe) {
-			// Update existing recipe
-			await prisma.recipe.update({
-				where: { id: existingRecipe.id },
-				data: recipe,
-			});
-		} else {
-			// Create new recipe
-			await prisma.recipe.create({
-				data: {
-					...recipe,
-					userId: systemUser.id,
-					createdBy: systemUser.name || "System",
-				},
-			});
-		}
-	}
-
-	console.log(`Seeded ${recipes.length} recipes`);
-}
-
 async function main() {
+	const overallStartTime = Date.now();
 	try {
 		console.log("Starting USDA FoodData Central seeding...");
 
-		// Seed in dependency order
-		await seedFoodCategories();
-		await seedMeasureUnits();
-		await seedNutrients();
-		await seedFoods();
-		await seedFoodNutrients();
-		await seedFoodPortions();
-		await seedRecipes();
+		// Find CSV files in data directory and subfolders
+		const csvPaths = findCsvFiles();
+		const foundFiles = Object.keys(csvPaths).map(
+			(name) => `${name}.csv (${csvPaths[name]})`,
+		);
+		console.log(`Found CSV files: ${foundFiles.join(", ")}`);
 
+		// Seed in dependency order
+		const categoriesStats = await seedFoodCategories();
+		const unitsStats = await seedMeasureUnits();
+		const nutrientsStats = await seedNutrients();
+		const foodsStats = await seedFoods();
+		const foodNutrientsStats = await seedFoodNutrients();
+		const foodPortionsStats = await seedFoodPortions();
+		const overallEndTime = Date.now();
+		const totalTime = (overallEndTime - overallStartTime) / 1000;
+
+		// Summary
+		const totalInserted =
+			categoriesStats.inserted +
+			unitsStats.inserted +
+			nutrientsStats.inserted +
+			foodsStats.inserted +
+			foodNutrientsStats.inserted +
+			foodPortionsStats.inserted;
+		const totalSkipped =
+			categoriesStats.skipped +
+			unitsStats.skipped +
+			nutrientsStats.skipped +
+			foodsStats.skipped +
+			foodNutrientsStats.skipped +
+			foodPortionsStats.skipped;
+		const totalFiltered =
+			categoriesStats.filtered +
+			unitsStats.filtered +
+			nutrientsStats.filtered +
+			foodsStats.filtered +
+			foodNutrientsStats.filtered +
+			foodPortionsStats.filtered;
+		const totalAdjusted =
+			categoriesStats.adjusted +
+			unitsStats.adjusted +
+			nutrientsStats.adjusted +
+			foodsStats.adjusted +
+			foodNutrientsStats.adjusted +
+			foodPortionsStats.adjusted;
+
+		console.log(`\n=== Seeding Summary ===`);
+		console.log(`Total records inserted/updated: ${totalInserted}`);
+		console.log(`Total records skipped (duplicates): ${totalSkipped}`);
+		console.log(
+			`Total records filtered out (invalid references): ${totalFiltered}`,
+		);
+		console.log(
+			`Total records adjusted (invalid fields set to null): ${totalAdjusted}`,
+		);
+		console.log(`Total time: ${totalTime} seconds`);
 		console.log("Seeding completed successfully!");
 	} catch (error) {
 		console.error("Seeding failed:", error);

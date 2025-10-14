@@ -1,16 +1,15 @@
 services:
-  seeder:
-    build:
-      context: .
-      dockerfile: Dockerfile.seeder
-    env_file:
-      - .env
-    profiles: ["seed"]
-
-  app:
+  archer-health:
     build: .
+    image: adarcher/archer-health:latest
+    container_name: archer-health-app
+    ports:
+      - "3000:3000"
     env_file:
       - .env
-    ports:
-      - "3765:3000"
-    command: sh -c "npx prisma migrate deploy && npm start"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped

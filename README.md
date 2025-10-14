@@ -1,20 +1,259 @@
 # Archer Health
+![Archer Health banner](https://health.adarcher.app/banner.webp)
+
+**Part of the Archer Life Suite** — A comprehensive health and wellness platform for calorie tracking, meal logging, and nutrition management.
+
+Archer Health is a modern web application built with Next.js 15, offering nutrition tracking with over 10,000 foods, goal setting, progress analytics, and recipe discovery. It integrates verified USDA FoodData Central nutrition information for accurate calorie and nutrient calculations and TheMealDb for recipes.
+
+## Quick Start (Production)
+
+### 1. Clone the Repository
+```bash
+git clone https://github.com/AD-Archer/archer-health.git
+cd archer-health
+```
+
+### 2. Set Up Environment Variables
+```bash
+# Copy the example environment file
+cp .env.example .env
+
+# Edit .env with your configuration (see Environment Setup section below)
+```
+
+### 3. Deploy with Docker Compose
+```bash
+# Start the application with database
+docker-compose up -d
+
+# Or use the pre-built Docker image from Docker Hub
+docker run -d \
+  --name archer-health \
+  -p 3000:3000 \
+  --env-file .env \
+  adarcher/archer-health:latest
+```
+
+### 4. Access Your Application
+- **Application**: http://localhost:3000
+- **Health Check**: http://localhost:3000/api/health
 
 ## Environment Setup
 
-Copy the example environment file and configure your settings:
+Create a `.env` file with the following required variables:
+
+```env
+# Database Configuration
+DATABASE_URL="postgresql://postgres:your_secure_password@db:5432/archer_health_db"
+
+# Clerk Authentication
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_your_clerk_publishable_key"
+CLERK_SECRET_KEY="sk_test_your_clerk_secret_key"
+
+# Email/SMTP Configuration (for contact forms)
+SMTP_HOST="smtp.gmail.com"
+SMTP_PORT="587"
+SMTP_SECURE="false"
+SMTP_USER="your-email@gmail.com"
+SMTP_PASS="your-app-password"
+SMTP_FROM="noreply@yourdomain.com"
+CONTACT_EMAIL="admin@yourdomain.com"
+```
+
+### Database Setup
+The application uses PostgreSQL. You can run it via Docker Compose or connect to an existing PostgreSQL instance.
+
+### Clerk Authentication Setup
+1. Create a [Clerk](https://clerk.com) account
+2. Create a new application
+3. Copy the publishable key and secret key to your `.env` file
+4. Configure your OAuth providers and redirect URLs
+
+### Email Configuration
+The contact form requires SMTP configuration. For Gmail:
+1. Enable 2-factor authentication
+2. Generate an [App Password](https://support.google.com/accounts/answer/185833)
+3. Use your Gmail address as `SMTP_USER`
+4. Use the App Password as `SMTP_PASS`
+
+## Docker Deployment Options
+
+### Option 1: Docker Compose (Recommended)
+```yaml
+# docker-compose.yml
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: archer_health_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  archer-health:
+    image: adarcher/archer-health:latest
+    container_name: archer-health
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+```
+
+### Option 2: Standalone Docker
+```bash
+# Pull the latest image
+docker pull adarcher/archer-health:latest
+
+# Run with environment variables
+docker run -d \
+  --name archer-health \
+  -p 3000:3000 \
+  -e DATABASE_URL="postgresql://..." \
+  -e NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_..." \
+  -e CLERK_SECRET_KEY="sk_test_..." \
+  adarcher/archer-health:latest
+```
+
+### Option 3: Build from Source
+```bash
+# Clone and build
+git clone https://github.com/AD-Archer/archer-health.git
+cd archer-health
+
+# Build the image
+docker build -t archer-health .
+
+# Run the container
+docker run -d \
+  --name archer-health \
+  -p 3000:3000 \
+  --env-file .env \
+  archer-health
+```
+
+## USDA Nutrition Data
+
+Archer Health integrates verified USDA FoodData Central nutrition information for accurate calorie and nutrient calculations.
+
+### What's Included
+- **2+ million foods** with verified nutritional information
+- Complete nutrient profiles (proteins, carbs, fats, vitamins, minerals)
+- Food categories and serving size data
+- All data sourced from USDA's official FoodData Central database
+
+### Data Sources
+- Current dataset: `data/FoodData_Central_csv_2025-04-24/`
+- Includes: food.csv, nutrient.csv, food_nutrient.csv, food_portion.csv, etc.
+- Data is updated annually with new USDA releases
+
+### Database Architecture
+The database includes two main data categories:
+1. **User Data**: Custom foods, meals, goals, achievements (user-generated)
+2. **USDA Data**: Verified nutritional information (pre-seeded)
+
+Tables are designed to be modular - USDA data can be updated independently of user data.
+
+### Updating USDA Data
+When new USDA data is released:
+```bash
+# 1. Download new CSV files from USDA FoodData Central
+# 2. Replace contents of data/FoodData_Central_csv_2025-04-24/
+# 3. Update folder name in seed script if needed
+# 4. Re-run seeding
+npx prisma db seed
+```
+
+**Note**: Seeding is non-destructive and idempotent - user data remains untouched.
+
+## Development Setup
+
+For local development with full source code access:
 
 ```bash
-cp .env.example .env.local
+# Clone the repository
+git clone https://github.com/AD-Archer/archer-health.git
+cd archer-health
+
+# Install dependencies
+pnpm install
+
+# Start PostgreSQL database
+docker-compose up -d
+
+# Run database migrations
+npx prisma migrate dev
+
+# Seed USDA data (optional, takes several minutes)
+npx prisma db seed
+
+# Start the development server
+pnpm dev
 ```
+
+## API Endpoints
+
+- **Health Check**: `GET /api/health` - Application health status
+- **Authentication**: Clerk-managed authentication endpoints
+- **Nutrition Data**: USDA FoodData Central integration
+- **User Management**: Profile, goals, and progress tracking
+
+## Features
+
+- ✅ **Nutrition Tracking**: Calorie counting with USDA-verified data
+- ✅ **Meal Logging**: Comprehensive meal and food entry system
+- ✅ **Goal Setting**: Personalized nutrition and fitness goals
+- ✅ **Progress Analytics**: Charts and insights for tracking progress
+- ✅ **Recipe Discovery**: Recipe database with nutritional information
+- ✅ **User Authentication**: Secure authentication via Clerk
+- ✅ **Responsive Design**: Mobile-first design for all devices
+- ✅ **Health Checks**: Built-in monitoring and health checks
+
+## Technology Stack
+
+- **Frontend**: Next.js 15, React, TypeScript, Tailwind CSS
+- **Backend**: Next.js API Routes, Prisma ORM
+- **Database**: PostgreSQL
+- **Authentication**: Clerk
+- **Deployment**: Docker, Docker Compose
+- **Email**: SMTP integration for contact forms
+
+## Support
+
+- **Repository**: https://github.com/AD-Archer/archer-health
+- **Docker Image**: https://hub.docker.com/repository/docker/adarcher/archer-health
+- **Issues**: https://github.com/AD-Archer/archer-health/issues
+
+## License
+
+This project is part of the Archer Life Suite. See LICENSE file for details.
 
 ## Database Setup
 
-Archer Health uses PostgreSQL with Prisma ORM. The database includes both user-generated food data and verified USDA FoodData Central nutrition information.
+Archer Health uses PostgreSQL with Prisma ORM. The database stores both user-generated food data and verified USDA FoodData Central nutrition information.
 
 ### Local Development Database
 
-For local development, use the provided Docker Compose setup:
+For local development, use Docker Compose:
 
 ```bash
 # Start PostgreSQL database
@@ -23,32 +262,81 @@ docker-compose up -d
 # Run database migrations
 npx prisma migrate dev
 
-# Seed with USDA FoodData (optional - includes 2M+ verified foods)
+# Seed with USDA FoodData (optional, includes 2M+ verified foods)
 npx prisma db seed
 ```
 
 ### USDA FoodData Seeding
 
-The application includes comprehensive USDA FoodData Central integration for verified nutrition data:
+The application integrates USDA FoodData Central for verified nutrition data.
 
-#### What Gets Seeded
+#### Seeded Data Includes
+
 - **2+ million foods** with verified nutritional information
 - Complete nutrient profiles (proteins, carbs, fats, vitamins, minerals)
 - Food categories and serving size data
 - All data sourced from USDA's official FoodData Central database
 
 #### Data Sources
-- `data/FoodData_Central_csv_2025-04-24/` - Current USDA dataset
+
+- `data/FoodData_Central_csv_2025-04-24/` — Current USDA dataset
 - Includes: food.csv, nutrient.csv, food_nutrient.csv, food_portion.csv, etc.
 - Data is updated annually with new USDA releases
 
 #### Updating USDA Data
-When new USDA data is released (typically annually):
+
+When new USDA data is released:
 
 ```bash
 # 1. Download new CSV files from USDA
 # 2. Replace contents of data/FoodData_Central_csv_2025-04-24/
 # 3. Update folder name and seed script DATA_DIR if needed
+# 4. Re-run seeding
+npx prisma db seed
+```
+
+Seeding is:
+
+- **Non-destructive**: User foods remain untouched
+- **Idempotent**: Safe to run multiple times
+- **Incremental**: New data can be added without conflicts
+
+### Docker Deployment with Database Seeding
+
+For production Docker deployments, clone the repository and run seeding locally before deployment.
+
+#### Using Docker Compose (Recommended)
+
+```yaml
+version: '3.8'
+services:
+    db:
+        image: postgres:15-alpine
+        environment:
+            POSTGRES_DB: archer_health_db
+            POSTGRES_USER: postgres
+            POSTGRES_PASSWORD: your_secure_password
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+
+    app:
+        build: .
+        ports:
+            - "3000:3000"
+        environment:
+            - DATABASE_URL=postgresql://postgres:your_secure_password@db:5432/archer_health_db
+        depends_on:
+            - db
+        command: sh -c "npx prisma migrate deploy && npx prisma db seed && npm start"
+
+volumes:
+    postgres_data:
+```
+
+#### Standalone Docker Build
+
+```bash
+git
 # 4. Re-run seeding
 npx prisma db seed
 ```
@@ -60,7 +348,7 @@ The seeding process is designed to be:
 
 ### Docker Deployment with Database Seeding
 
-For production Docker deployments, the application automatically handles database setup and seeding:
+For production Docker deployments, clone the repository and run seeding locally before deployment:
 
 #### Using Docker Compose (Recommended)
 
@@ -94,6 +382,10 @@ volumes:
 #### Standalone Docker Build
 
 ```bash
+# Clone the repository
+git clone https://github.com/ad-archer/archer-health.git
+cd archer-health
+
 # Build the application with embedded USDA data
 docker build -t archer-health .
 
@@ -102,62 +394,6 @@ docker run -p 3000:3000 \
   -e DATABASE_URL="postgresql://..." \
   archer-health
 ```
-
-#### Database Seeding Helper Container
-
-For complex deployments, you can use a dedicated seeding container:
-
-```yaml
-# docker-compose.yml with separate seeder
-services:
-  db:
-    image: postgres:15-alpine
-    # ... db config
-
-  seeder:
-    build:
-      context: .
-      dockerfile: Dockerfile.seeder
-    environment:
-      - DATABASE_URL=postgresql://postgres:password@db:5432/archer_health_db
-    depends_on:
-      - db
-    profiles: ["seed"]  # Only run when explicitly requested
-
-  app:
-    build: .
-    # ... app config
-    depends_on:
-      - db
-      - seeder
-```
-
-```dockerfile
-# Dockerfile.seeder
-FROM node:20-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm install -g pnpm && pnpm install --frozen-lockfile
-COPY prisma/ ./prisma/
-COPY data/ ./data/
-RUN npx prisma generate
-CMD ["npx", "prisma", "db", "seed"]
-```
-
-Run seeding separately:
-```bash
-# Seed the database
-docker-compose --profile seed up seeder
-
-# Then start the app
-docker-compose up app
-```
-
-This approach provides:
-- **Faster app startups** (seeding happens separately)
-- **Better error handling** (seeding failures don't break app deployment)
-- **Flexible deployments** (can seed existing databases)
-- **Development workflow** (can reseed without rebuilding app)
 
 ### Database Schema
 
@@ -172,78 +408,51 @@ Tables are designed to be modular - USDA data can be updated independently of us
 
 #### Development
 ```bash
-# Start everything
+# Clone the repository
+git clone https://github.com/yourusername/archer-health.git
+cd archer-health
+
+# Install dependencies
+pnpm install
+
+# Start PostgreSQL database
 docker-compose up -d
 
 # Run migrations
-docker-compose exec app npx prisma migrate dev
+npx prisma migrate dev
 
-# Seed USDA data
-docker-compose --profile seed up seeder
-
-# View logs
-docker-compose logs -f app
-```
-
-#### Production
-```bash
-#### Production
-```bash
-# Build and deploy
-docker-compose -f docker-compose.yml up --build -d
-
-# Or use the helper seeder approach
-docker-compose --profile seed up --build seeder
-docker-compose up --build app
-```
-
-### Docker Hub Deployment
-
-The application is designed for seamless Docker Hub deployment without requiring repository cloning:
-
-
-#### Simple Docker Run (Single Container)
-
-For simple deployments, you can use individual docker run commands. Set your environment variables using a `.env` file or export commands:
-
-```bash
-# Option 1: Source from .env file
-set -a && source .env && set +a
-
-# Option 2: Or export manually
-export DB_PASSWORD="your_secure_password"
-export DATABASE_URL="postgresql://postgres:$DB_PASSWORD@localhost:5432/archer_health_db"
-export NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="..."
-export CLERK_SECRET_KEY="..."
-
-# Start PostgreSQL
-docker run -d --name archer-db \
-  -e POSTGRES_DB=archer_health_db \
-  -e POSTGRES_USER=postgres \
-  -e POSTGRES_PASSWORD=$DB_PASSWORD \
-  -p 5432:5432 \
-  postgres:15-alpine
-
-# Wait for database to be ready
-sleep 10
-
-# Seed the database
-docker run --rm \
-  -e DATABASE_URL=$DATABASE_URL \
-  yourusername/archer-health-seeder:latest
+# Seed USDA data (takes several minutes)
+npx prisma db seed
 
 # Start the application
-docker run -d --name archer-health \
-  -e DATABASE_URL=$DATABASE_URL \
-  -e NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY \
-  -e CLERK_SECRET_KEY=$CLERK_SECRET_KEY \
-  -p 3000:3000 \
-  yourusername/archer-health-app:latest
+pnpm dev
+
+# View logs
+docker-compose logs -f
 ```
 
-#### Production Docker Compose
+#### Production
+```bash
+# Clone and set up
+git clone https://github.com/yourusername/archer-health.git
+cd archer-health
 
-Create a `docker-compose.yml` file with your Docker Hub username and a `.env` file for configuration:
+# Set up database and seed data locally
+docker-compose up -d
+npx prisma migrate deploy
+npx prisma db seed
+
+# Deploy application
+docker-compose -f docker-compose.yml up --build -d app
+```
+
+### Production Deployment
+
+Archer Health is designed for seamless deployment where users clone the repository and run seeding locally. This ensures the latest USDA data is always available and provides maximum flexibility for deployments.
+
+#### Docker Compose Deployment
+
+Create a `docker-compose.yml` file in your cloned repository:
 
 **docker-compose.yml:**
 ```yaml
@@ -266,17 +475,8 @@ services:
       timeout: 5s
       retries: 5
 
-  seeder:
-    image: adarcher/archer-health-seeder:latest
-    environment:
-      - DATABASE_URL=postgresql://postgres:${DB_PASSWORD}@db:5432/archer_health_db
-    depends_on:
-      db:
-        condition: service_healthy
-    profiles: ["seed"]
-
   app:
-    image: adarcher/archer-health:latest
+    build: .
     ports:
       - "3000:3000"
     environment:
@@ -291,8 +491,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      seeder:
-        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
       interval: 30s
@@ -324,32 +522,40 @@ CONTACT_EMAIL=admin@yourdomain.com
 
 #### Deployment Steps
 
-1. **Create Environment File**:
+1. **Clone the Repository**:
+   ```bash
+   git clone https://github.com/yourusername/archer-health.git
+   cd archer-health
+   ```
+
+2. **Set up Database and Seed Data**:
+   ```bash
+   # Start PostgreSQL (using Docker or your preferred method)
+   docker-compose up -d
+
+   # Run migrations
+   npx prisma migrate deploy
+
+   # Seed USDA nutrition data (this takes several minutes)
+   npx prisma db seed
+   ```
+
+3. **Create Environment File**:
    ```bash
    # Create .env file with your configuration
    cp .env.example .env  # Or create manually
    # Edit .env with your actual values
    ```
 
-2. **Update Docker Compose**:
-   ```bash
-   # Edit docker-compose.yml and replace 'yourusername' with your Docker Hub username
-   ```
-
-3. **Deploy Database & Seed**:
-   ```bash
-   docker-compose --profile seed up -d
-   ```
-
-4. **Start Application**:
+4. **Deploy Application**:
    ```bash
    docker-compose up -d app
    ```
 
 #### Key Benefits
 
-- **No Repository Cloning Required**: Deploy directly from published images
-- **Automatic USDA Data Seeding**: Images include embedded CSV data
+- **Latest Data**: Always uses the most current USDA nutrition data
+- **Flexible Deployment**: Can be deployed anywhere Docker is available
 - **Production Ready**: Includes health checks, proper restarts, and monitoring
 - **Secure**: Environment variables for sensitive configuration
 - **Scalable**: Easy to scale or migrate deployments

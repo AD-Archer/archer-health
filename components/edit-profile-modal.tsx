@@ -31,7 +31,7 @@ export function EditProfileModal({
 	open,
 	onOpenChange,
 }: EditProfileModalProps) {
-	const { user: clerkUser } = useUser();
+	const { user: clerkUser } = useUser() || { user: null };
 	const { updateUser } = useStore();
 	const { getDisplayWeight, displayWeightToKg, getDisplayWeeklyGoal } =
 		useUnitConversion();

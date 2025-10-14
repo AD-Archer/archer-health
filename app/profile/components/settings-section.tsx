@@ -17,28 +17,16 @@ import { ArcherAquaModal } from "@/components/archer-aqua-modal";
 import { HelpModal } from "@/components/help-modal";
 import { NotificationSettingsModal } from "@/components/notification-settings-modal";
 import { PrivacySecurityModal } from "@/components/privacy-security-modal";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "@/components/ui/dialog";
 
 export function SettingsSection() {
-	const { signOut } = useClerk();
 	const [notificationsOpen, setNotificationsOpen] = useState(false);
 	const [privacyOpen, setPrivacyOpen] = useState(false);
 	const [helpOpen, setHelpOpen] = useState(false);
-	const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
 	const [archerAquaOpen, setArcherAquaOpen] = useState(false);
+	const { signOut } = useClerk();
 
-	const handleLogout = () => {
-		signOut({ redirectUrl: "/" });
-	};
+	// Handle logout with Clerk
 
 	return (
 		<>
@@ -114,8 +102,8 @@ export function SettingsSection() {
 					</button>
 
 					<button
-						onClick={() => setLogoutConfirmOpen(true)}
-						className="flex items-center justify-between p-3 sm:p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors w-full text-error"
+						onClick={() => signOut()}
+						className="flex items-center justify-between p-3 sm:p-4 rounded-lg border border-border hover:bg-destructive/5 hover:border-destructive/20 transition-colors w-full text-destructive"
 					>
 						<div className="flex items-center gap-3">
 							<LogOut className="w-5 h-5" />
@@ -134,28 +122,7 @@ export function SettingsSection() {
 			<HelpModal open={helpOpen} onOpenChange={setHelpOpen} />
 			<ArcherAquaModal open={archerAquaOpen} onOpenChange={setArcherAquaOpen} />
 
-			<Dialog open={logoutConfirmOpen} onOpenChange={setLogoutConfirmOpen}>
-				<DialogContent>
-					<DialogHeader>
-						<DialogTitle>Log Out</DialogTitle>
-						<DialogDescription>
-							Are you sure you want to log out? You will need to sign in again
-							to access your account.
-						</DialogDescription>
-					</DialogHeader>
-					<DialogFooter>
-						<Button
-							variant="outline"
-							onClick={() => setLogoutConfirmOpen(false)}
-						>
-							Cancel
-						</Button>
-						<Button variant="destructive" onClick={handleLogout}>
-							Log Out
-						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
+			{/* logout handled by Clerk signOut */}
 		</>
 	);
 }
