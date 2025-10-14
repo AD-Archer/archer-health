@@ -69,13 +69,13 @@ export default function LandingPage() {
 					</div>
 					<nav className="hidden md:flex items-center gap-6">
 						<Link
-							href="/login"
+							href="/sign-in"
 							className="text-sm font-medium hover:text-primary"
 						>
 							Log In
 						</Link>
 						<Button asChild>
-							<Link href="/signup">Get Started</Link>
+							<Link href="/sign-up">Get Started</Link>
 						</Button>
 					</nav>
 				</div>
@@ -95,13 +95,13 @@ export default function LandingPage() {
 						</p>
 						<div className="flex flex-col sm:flex-row gap-4">
 							<Button size="lg" asChild>
-								<Link href="/signup">
+								<Link href="/sign-up">
 									Get Started
 									<ArrowRight className="ml-2 w-5 h-5" />
 								</Link>
 							</Button>
 							<Button size="lg" variant="outline" asChild>
-								<Link href="/login">Log In</Link>
+								<Link href="/sign-in">Log In</Link>
 							</Button>
 						</div>
 					</div>
@@ -205,7 +205,7 @@ export default function LandingPage() {
 						with Archer Health.
 					</p>
 					<Button size="lg" asChild>
-						<Link href="/signup">
+						<Link href="/sign-up">
 							Get Started Free
 							<ArrowRight className="ml-2 w-5 h-5" />
 						</Link>

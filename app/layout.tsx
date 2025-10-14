@@ -114,6 +114,8 @@ export default function RootLayout({
 	return (
 		<ClerkProvider
 			publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+			afterSignInUrl="/dashboard"
+			afterSignUpUrl="/dashboard"
 		>
 			<html lang="en" className={`${inter.variable} ${poppins.variable}`}>
 				<head>
@@ -210,7 +212,16 @@ export default function RootLayout({
 					/>
 					<meta name="apple-mobile-web-app-title" content="Archer Health" />
 				</head>
-				<body className="font-sans antialiased">{children}</body>
+				<body className="font-sans antialiased">
+					{!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && (
+						<div className="fixed inset-x-0 top-0 bg-red-600 text-white text-sm text-center py-2 z-50">
+							WARNING: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is not set. Clerk may
+							load development keys — set the publishable key and restart the
+							app.
+						</div>
+					)}
+					{children}
+				</body>
 			</html>
 		</ClerkProvider>
 	);

@@ -2,6 +2,7 @@
 
 import { AlertCircle, Home, Search, Send } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
 export default function NotFoundPage() {
+	const pathname = usePathname();
 	const [showReportForm, setShowReportForm] = useState(false);
 	const [reportData, setReportData] = useState({
 		name: "",
@@ -96,7 +98,7 @@ Search Params: ${window.location.search}
 
 					<div className="bg-muted p-3 rounded-lg">
 						<p className="text-sm font-mono break-all text-muted-foreground">
-							{typeof window !== "undefined" ? window.location.pathname : ""}
+							{pathname}
 						</p>
 					</div>
 

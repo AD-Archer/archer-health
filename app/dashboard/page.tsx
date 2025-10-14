@@ -1,7 +1,7 @@
 "use client";
 
 // Force edge runtime to avoid Clerk prerendering issues
-export const runtime = "edge";
+// export const runtime = "edge";
 
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
