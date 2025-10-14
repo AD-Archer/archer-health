@@ -2,6 +2,10 @@
 
 import { CheckCircle, Lock, Trophy } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
 // Define Achievement type locally since '@/app/data/data' is missing
 export type Achievement = {
 	achievementId: string;
@@ -13,8 +17,6 @@ export type Achievement = {
 	unlockedAt?: Date;
 	triggerType?: "manual" | "auto";
 };
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function Achievements() {
 	const [achievements, setAchievements] = useState<Achievement[]>([]);

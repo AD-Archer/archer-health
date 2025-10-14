@@ -39,9 +39,13 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
-		if (!foodId && !mealId) {
+		// Allow meal entries without foodId/mealId if nutrition values are provided directly (for Quick Add)
+		if (!foodId && !mealId && (!calories || !protein || !carbs || !fat)) {
 			return NextResponse.json(
-				{ error: "Either foodId or mealId must be provided" },
+				{
+					error:
+						"Either foodId/mealId must be provided, or all nutrition values (calories, protein, carbs, fat) must be provided for Quick Add",
+				},
 				{ status: 400 },
 			);
 		}
@@ -49,8 +53,8 @@ export async function POST(request: NextRequest) {
 		let actualFoodId = foodId;
 
 		// If the foodId starts with "usda-", it's a USDA food that needs to be copied to user's foods first
-		if (foodId && foodId.startsWith("usda-")) {
-			const usdaFdcId = parseInt(foodId.replace("usda-", ""));
+		if (foodId?.startsWith("usda-")) {
+			const usdaFdcId = parseInt(foodId.replace("usda-", ""), 10);
 
 			// Check if user already has this USDA food in their collection
 			let existingFood = await prisma.food.findFirst({

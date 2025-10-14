@@ -16,7 +16,9 @@
 		"lint:fix": "biome check --write .",
 		"format": "biome format --write .",
 		"typecheck": "tsc --noEmit",
-		"db:seed": "tsx prisma/seed.ts"
+		"db:seed": "tsx prisma/seed.ts",
+		"db:seed-meals": "tsx prisma/seed-meals.ts",
+		"db:cleanup-meals": "tsx prisma/cleanup-meals.ts"
 	},
 	"dependencies": {
 		"@clerk/nextjs": "^6.33.3",

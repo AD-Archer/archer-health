@@ -1,6 +1,14 @@
 "use client";
 
-import { CheckCircle, Plus, Search, Utensils } from "lucide-react";
+import {
+	CheckCircle,
+	Flame,
+	Plus,
+	Search,
+	Users,
+	Utensils,
+	Zap,
+} from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import type { Food, MealEntry } from "@/app/data/data";
 import { Button } from "@/components/ui/button";
@@ -28,14 +36,98 @@ interface AddEntryModalProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	selectedDate?: Date;
+	initialSearchQuery?: string;
+	showMealDBWarning?: boolean;
+	defaultTab?: "log-food" | "quick-add" | "create-food" | "create-meal";
+	recipeData?: {
+		name: string;
+		ingredients: Array<{
+			name: string;
+			amount: number;
+			unit: string;
+		}>;
+		calories?: number;
+		protein?: number;
+		carbs?: number;
+		fat?: number;
+	};
 }
 
 export function AddEntryModal({
 	open,
 	onOpenChange,
 	selectedDate,
+	initialSearchQuery,
+	showMealDBWarning, // eslint-disable-line @typescript-eslint/no-unused-vars
+	recipeData, // eslint-disable-line @typescript-eslint/no-unused-vars
+	defaultTab = "log-food",
 }: AddEntryModalProps) {
-	const [activeTab, setActiveTab] = useState("log-food");
+	const [activeTab, setActiveTab] = useState(defaultTab);
+
+	useEffect(() => {
+		setActiveTab(defaultTab);
+	}, [defaultTab]);
+	// Quick Add state
+	const [quickCalories, setQuickCalories] = useState(
+		recipeData?.calories?.toString() || "",
+	);
+	const [quickProtein, setQuickProtein] = useState(
+		recipeData?.protein?.toString() || "",
+	);
+	const [quickCarbs, setQuickCarbs] = useState(
+		recipeData?.carbs?.toString() || "",
+	);
+	const [quickFat, setQuickFat] = useState(recipeData?.fat?.toString() || "");
+	const [quickServings, setQuickServings] = useState("1");
+	const [quickMealType, setQuickMealType] = useState<
+		"breakfast" | "lunch" | "dinner" | "snacks"
+	>("breakfast");
+	const [isQuickAdding, setIsQuickAdding] = useState(false);
+	const addMealEntry = useStore((s) => s.addMealEntry);
+
+	const handleQuickAdd = async () => {
+		if (isQuickAdding) return;
+		setIsQuickAdding(true);
+		try {
+			const servingAmount = Number.parseFloat(quickServings) || 1;
+			const payload: Partial<MealEntry> = {
+				id: Date.now().toString(),
+				date: selectedDate
+					? selectedDate.toISOString().split("T")[0]
+					: new Date().toISOString().split("T")[0],
+				mealType: quickMealType,
+				servings: servingAmount,
+				calories: (Number(quickCalories) || 0) * servingAmount,
+				protein: (Number(quickProtein) || 0) * servingAmount,
+				carbs: (Number(quickCarbs) || 0) * servingAmount,
+				fat: (Number(quickFat) || 0) * servingAmount,
+			};
+
+			const res = await fetch("/api/meal-entries", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(payload),
+			});
+
+			if (res.ok) {
+				const created = await res.json();
+				addMealEntry(created);
+				onOpenChange(false);
+			} else {
+				const errorText = await res.text();
+				console.error("Quick add failed:", {
+					status: res.status,
+					statusText: res.statusText,
+					body: errorText,
+					payload,
+				});
+			}
+		} catch (e) {
+			console.error(e);
+		} finally {
+			setIsQuickAdding(false);
+		}
+	};
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -44,17 +136,132 @@ export function AddEntryModal({
 					<DialogTitle>Add Entry</DialogTitle>
 				</DialogHeader>
 
-				<Tabs value={activeTab} onValueChange={setActiveTab}>
-					<TabsList className="grid w-full grid-cols-3">
+				<Tabs
+					value={activeTab}
+					onValueChange={(value) => setActiveTab(value as typeof activeTab)}
+				>
+					<TabsList className="grid w-full grid-cols-4">
 						<TabsTrigger value="log-food">Log Food</TabsTrigger>
+						<TabsTrigger value="quick-add">Quick Add</TabsTrigger>
 						<TabsTrigger value="create-food">Create Food</TabsTrigger>
 						<TabsTrigger value="create-meal">Create Meal</TabsTrigger>
 					</TabsList>
+
+					<TabsContent value="quick-add" className="space-y-4">
+						<div className="space-y-6">
+							{/* Nutrition Inputs */}
+							<div className="grid grid-cols-2 gap-4">
+								<div className="space-y-2">
+									<Label className="flex items-center gap-2 text-sm font-medium">
+										<Flame className="w-4 h-4 text-orange-500" />
+										Calories
+									</Label>
+									<Input
+										type="number"
+										value={quickCalories}
+										onChange={(e) => setQuickCalories(e.target.value)}
+										placeholder="0"
+									/>
+								</div>
+								<div className="space-y-2">
+									<Label className="flex items-center gap-2 text-sm font-medium">
+										<Users className="w-4 h-4 text-blue-500" />
+										Servings
+									</Label>
+									<Input
+										type="number"
+										min="0.01"
+										step="0.1"
+										value={quickServings}
+										onChange={(e) => setQuickServings(e.target.value)}
+										placeholder="1"
+									/>
+								</div>
+							</div>
+
+							{/* Macros */}
+							<div className="space-y-3">
+								<h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+									Macronutrients
+								</h4>
+								<div className="grid grid-cols-3 gap-3">
+									<div className="space-y-2">
+										<Label className="text-xs text-muted-foreground">
+											Protein (g)
+										</Label>
+										<Input
+											type="number"
+											value={quickProtein}
+											onChange={(e) => setQuickProtein(e.target.value)}
+											placeholder="0"
+										/>
+									</div>
+									<div className="space-y-2">
+										<Label className="text-xs text-muted-foreground">
+											Carbs (g)
+										</Label>
+										<Input
+											type="number"
+											value={quickCarbs}
+											onChange={(e) => setQuickCarbs(e.target.value)}
+											placeholder="0"
+										/>
+									</div>
+									<div className="space-y-2">
+										<Label className="text-xs text-muted-foreground">
+											Fat (g)
+										</Label>
+										<Input
+											type="number"
+											value={quickFat}
+											onChange={(e) => setQuickFat(e.target.value)}
+											placeholder="0"
+										/>
+									</div>
+								</div>
+							</div>
+
+							{/* Meal Type */}
+							<div className="space-y-2">
+								<Label className="flex items-center gap-2 text-sm font-medium">
+									<Utensils className="w-4 h-4 text-green-500" />
+									Meal Type
+								</Label>
+								<Select
+									value={quickMealType}
+									onValueChange={(v: string) =>
+										setQuickMealType(
+											v as "breakfast" | "lunch" | "dinner" | "snacks",
+										)
+									}
+								>
+									<SelectTrigger>
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="breakfast">Breakfast</SelectItem>
+										<SelectItem value="lunch">Lunch</SelectItem>
+										<SelectItem value="dinner">Dinner</SelectItem>
+										<SelectItem value="snacks">Snacks</SelectItem>
+									</SelectContent>
+								</Select>
+							</div>
+
+							{/* Action Button */}
+							<Button onClick={handleQuickAdd} className="w-full" size="lg">
+								<Zap className="w-4 h-4 mr-2" />
+								{isQuickAdding ? "Adding..." : "Quick Add Entry"}
+							</Button>
+						</div>
+					</TabsContent>
 
 					<TabsContent value="log-food" className="space-y-4">
 						<LogFoodTab
 							onClose={() => onOpenChange(false)}
 							selectedDate={selectedDate}
+							initialSearchQuery={initialSearchQuery}
+							showMealDBWarning={showMealDBWarning}
+							recipeData={recipeData}
 						/>
 					</TabsContent>
 
@@ -74,11 +281,28 @@ export function AddEntryModal({
 function LogFoodTab({
 	onClose,
 	selectedDate,
+	initialSearchQuery,
+	showMealDBWarning,
+	recipeData,
 }: {
 	onClose: () => void;
 	selectedDate?: Date;
+	initialSearchQuery?: string;
+	showMealDBWarning?: boolean;
+	recipeData?: {
+		name: string;
+		ingredients: Array<{
+			name: string;
+			amount: number;
+			unit: string;
+		}>;
+		calories?: number;
+		protein?: number;
+		carbs?: number;
+		fat?: number;
+	};
 }) {
-	const [searchQuery, setSearchQuery] = useState("");
+	const [searchQuery, setSearchQuery] = useState(initialSearchQuery || "");
 	const [selectedFood, setSelectedFood] = useState<Food | null>(null);
 	const [servings, setServings] = useState("1");
 	const [mealType, setMealType] = useState<
@@ -494,6 +718,27 @@ function CreateFoodTab({ onClose }: { onClose: () => void }) {
 							placeholder="0"
 							value={protein}
 							onChange={(e) => setProtein(e.target.value)}
+						/>
+					</div>
+				</div>
+
+				<div className="grid grid-cols-2 gap-4">
+					<div className="space-y-2">
+						<Label>Carbs (g)</Label>
+						<Input
+							type="number"
+							placeholder="0"
+							value={carbs}
+							onChange={(e) => setCarbs(e.target.value)}
+						/>
+					</div>
+					<div className="space-y-2">
+						<Label>Fat (g)</Label>
+						<Input
+							type="number"
+							placeholder="0"
+							value={fat}
+							onChange={(e) => setFat(e.target.value)}
 						/>
 					</div>
 				</div>
