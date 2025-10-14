@@ -1,109 +1,15 @@
 "use client";
 
 import { Activity, Award, Flame, TrendingDown } from "lucide-react";
-import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useStore } from "@/lib/store";
+import { useNutritionData } from "@/lib/use-nutrition-data";
 import { useUnitConversion } from "@/lib/use-unit-conversion";
-
-interface ProgressData {
-	weightHistory: Array<{
-		id: string;
-		weight: number;
-		date: string;
-		entries?: number; // Number of weight entries averaged for this day
-	}>;
-	calorieHistory: Array<{
-		date: string;
-		calories: number;
-		protein: number;
-		carbs: number;
-		fat: number;
-		mealsLogged: number;
-	}>;
-	streaks: {
-		current: number;
-		longest: number;
-		currentMeal: number;
-		longestMeal: number;
-	};
-	averages: {
-		weight: number;
-		calories: number;
-		protein: number;
-		carbs: number;
-		fat: number;
-	};
-	todayNutrition: {
-		calories: number;
-		protein: number;
-		carbs: number;
-		fat: number;
-		mealsLogged: number;
-	};
-	weeklyStats: {
-		calories: number;
-		protein: number;
-		carbs: number;
-		fat: number;
-		daysLogged: number;
-	};
-	monthlyStats: {
-		calories: number;
-		daysLogged: number;
-		averageDailyCalories: number;
-	};
-	goals: Array<{
-		id: string;
-		type: string;
-		name: string;
-		target: number;
-		current: number;
-		unit: string;
-	}>;
-	bmi: number | null;
-	totalMealsLogged: number;
-	totalDaysTracked: number;
-}
 
 export function WeeklyStats() {
 	const user = useStore((state) => state.user);
 	const { getDisplayWeight } = useUnitConversion();
-	const [progressData, setProgressData] = useState<ProgressData | null>(null);
-
-	if (!user) {
-		return (
-			<Card>
-				<CardHeader>
-					<CardTitle className="font-display flex items-center gap-2">
-						<TrendingDown className="w-5 h-5" />
-						Weekly Stats
-					</CardTitle>
-				</CardHeader>
-				<CardContent>
-					<div className="text-center py-4 text-muted-foreground">
-						Loading user data...
-					</div>
-				</CardContent>
-			</Card>
-		);
-	}
-
-	useEffect(() => {
-		const fetchProgress = async () => {
-			try {
-				const response = await fetch("/api/progress");
-				if (response.ok) {
-					const data = await response.json();
-					setProgressData(data);
-				}
-			} catch (error) {
-				console.error("Error fetching progress data:", error);
-			}
-		};
-
-		fetchProgress();
-	}, []);
+	const { progressData, loading } = useNutritionData();
 
 	// Calculate weight lost this week
 	const getWeightLost = () => {
@@ -203,6 +109,21 @@ export function WeeklyStats() {
 			bgColor: "bg-teal-50",
 		},
 	];
+
+	if (loading) {
+		return (
+			<Card>
+				<CardHeader>
+					<CardTitle className="font-display">This Week</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<div className="text-center py-4 text-muted-foreground">
+						Loading weekly stats...
+					</div>
+				</CardContent>
+			</Card>
+		);
+	}
 
 	return (
 		<Card>

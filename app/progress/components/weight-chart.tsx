@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
 	CartesianGrid,
 	Line,
@@ -19,65 +19,14 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { useStore } from "@/lib/store";
+import { useNutritionData } from "@/lib/use-nutrition-data";
 import { useUnitConversion } from "@/lib/use-unit-conversion";
-
-interface WeightEntry {
-	id: string;
-	weight: number;
-	date: string;
-	entries?: number; // Number of weight entries averaged for this day
-}
-
-interface Goal {
-	id: string;
-	type: string;
-	name: string;
-	target: number;
-	current: number;
-	unit: string;
-	deadline?: string;
-	isActive: boolean;
-}
-
-interface WeeklyStats {
-	calories: number;
-	protein: number;
-	carbs: number;
-	fat: number;
-	daysLogged: number;
-}
-
-interface ProgressData {
-	weightHistory: WeightEntry[];
-	streaks: {
-		current: number;
-		longest: number;
-	};
-	goals: Goal[];
-	weeklyStats: WeeklyStats;
-}
 
 export function WeightChart() {
 	const user = useStore((state) => state.user);
 	const { getDisplayWeight } = useUnitConversion();
-	const [progressData, setProgressData] = useState<ProgressData | null>(null);
+	const { progressData, loading } = useNutritionData();
 	const [timeRange, setTimeRange] = useState("6weeks");
-
-	useEffect(() => {
-		const fetchProgress = async () => {
-			try {
-				const response = await fetch("/api/progress");
-				if (response.ok) {
-					const data = await response.json();
-					setProgressData(data);
-				}
-			} catch (error) {
-				console.error("Error fetching progress data:", error);
-			}
-		};
-
-		fetchProgress();
-	}, []);
 
 	// Filter data based on time range
 	const getFilteredData = () => {
@@ -111,6 +60,21 @@ export function WeightChart() {
 
 	const data = getFilteredData();
 	const unitLabel = user?.units === "imperial" ? "lbs" : "kg";
+
+	if (loading) {
+		return (
+			<Card>
+				<CardHeader>
+					<CardTitle className="font-display">Weight Trend</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<div className="flex items-center justify-center h-[300px] text-muted-foreground">
+						Loading weight data...
+					</div>
+				</CardContent>
+			</Card>
+		);
+	}
 
 	return (
 		<Card>

@@ -5,9 +5,9 @@ import { prisma } from "@/lib/prisma";
 import { RecipeDetail } from "../components/recipe-detail";
 
 interface RecipePageProps {
-	params: {
+	params: Promise<{
 		id: string;
-	};
+	}>;
 }
 
 export default async function RecipePage({ params }: RecipePageProps) {

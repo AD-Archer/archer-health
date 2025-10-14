@@ -87,6 +87,13 @@ export function AddEntryModal({
 
 	const handleQuickAdd = async () => {
 		if (isQuickAdding) return;
+
+		// Validate that calories are provided
+		if (!quickCalories || Number(quickCalories) <= 0) {
+			console.error("Calories are required for quick add");
+			return;
+		}
+
 		setIsQuickAdding(true);
 		try {
 			const servingAmount = Number.parseFloat(quickServings) || 1;
@@ -248,7 +255,12 @@ export function AddEntryModal({
 							</div>
 
 							{/* Action Button */}
-							<Button onClick={handleQuickAdd} className="w-full" size="lg">
+							<Button
+								onClick={handleQuickAdd}
+								className="w-full"
+								size="lg"
+								disabled={!quickCalories || Number(quickCalories) <= 0}
+							>
 								<Zap className="w-4 h-4 mr-2" />
 								{isQuickAdding ? "Adding..." : "Quick Add Entry"}
 							</Button>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
 	CartesianGrid,
 	Line,
@@ -18,6 +18,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { useNutritionData } from "@/lib/use-nutrition-data";
 
 interface CalorieData {
 	date: string;
@@ -28,32 +29,9 @@ interface CalorieData {
 	mealsLogged: number;
 }
 
-interface ProgressData {
-	calorieHistory: CalorieData[];
-	averages: {
-		calories: number;
-	};
-}
-
 export function CalorieChart() {
-	const [progressData, setProgressData] = useState<ProgressData | null>(null);
 	const [timeRange, setTimeRange] = useState("30days");
-
-	useEffect(() => {
-		const fetchProgress = async () => {
-			try {
-				const response = await fetch("/api/progress");
-				if (response.ok) {
-					const data = await response.json();
-					setProgressData(data);
-				}
-			} catch (error) {
-				console.error("Error fetching progress data:", error);
-			}
-		};
-
-		fetchProgress();
-	}, []);
+	const { progressData, loading } = useNutritionData();
 
 	// Filter data based on time range
 	const getFilteredData = () => {
@@ -92,6 +70,21 @@ export function CalorieChart() {
 
 	const data = getFilteredData();
 	const averageCalories = progressData?.averages.calories || 0;
+
+	if (loading) {
+		return (
+			<Card>
+				<CardHeader>
+					<CardTitle className="font-display">Calorie Intake</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<div className="flex items-center justify-center h-[250px] text-muted-foreground">
+						Loading calorie data...
+					</div>
+				</CardContent>
+			</Card>
+		);
+	}
 
 	return (
 		<Card>

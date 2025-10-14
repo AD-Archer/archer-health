@@ -1,41 +1,11 @@
 "use client";
 
 import { Award, Calendar, Flame, Target } from "lucide-react";
-import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
-interface ProgressData {
-	streaks: {
-		current: number;
-		longest: number;
-		currentMeal: number;
-		longestMeal: number;
-	};
-	totalMealsLogged: number;
-	totalDaysTracked: number;
-	monthlyStats: {
-		daysLogged: number;
-	};
-}
+import { useNutritionData } from "@/lib/use-nutrition-data";
 
 export function StreakAnalytics() {
-	const [progressData, setProgressData] = useState<ProgressData | null>(null);
-
-	useEffect(() => {
-		const fetchProgress = async () => {
-			try {
-				const response = await fetch("/api/progress");
-				if (response.ok) {
-					const data = await response.json();
-					setProgressData(data);
-				}
-			} catch (error) {
-				console.error("Error fetching progress data:", error);
-			}
-		};
-
-		fetchProgress();
-	}, []);
+	const { progressData, loading } = useNutritionData();
 
 	const streaks = progressData?.streaks;
 	const monthlyStats = progressData?.monthlyStats;
@@ -78,6 +48,24 @@ export function StreakAnalytics() {
 	const consistencyRate = monthlyStats?.daysLogged
 		? Math.round((monthlyStats.daysLogged / 30) * 100)
 		: 0;
+
+	if (loading) {
+		return (
+			<Card>
+				<CardHeader>
+					<CardTitle className="font-display flex items-center gap-2">
+						<Award className="w-5 h-5" />
+						Streaks & Consistency
+					</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<div className="text-center py-4 text-muted-foreground">
+						Loading streak data...
+					</div>
+				</CardContent>
+			</Card>
+		);
+	}
 
 	return (
 		<Card>

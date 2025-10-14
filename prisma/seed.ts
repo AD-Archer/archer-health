@@ -520,15 +520,27 @@ async function seedRecipes() {
 	];
 
 	for (const recipe of recipes) {
-		await prisma.recipe.upsert({
+		// Check if recipe already exists by name
+		const existingRecipe = await prisma.recipe.findFirst({
 			where: { name: recipe.name },
-			update: recipe,
-			create: {
-				...recipe,
-				userId: systemUser.id,
-				createdBy: systemUser.name || "System",
-			},
 		});
+
+		if (existingRecipe) {
+			// Update existing recipe
+			await prisma.recipe.update({
+				where: { id: existingRecipe.id },
+				data: recipe,
+			});
+		} else {
+			// Create new recipe
+			await prisma.recipe.create({
+				data: {
+					...recipe,
+					userId: systemUser.id,
+					createdBy: systemUser.name || "System",
+				},
+			});
+		}
 	}
 
 	console.log(`Seeded ${recipes.length} recipes`);

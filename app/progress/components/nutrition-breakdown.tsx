@@ -1,45 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useStore } from "@/lib/store";
-
-interface ProgressData {
-	todayNutrition: {
-		calories: number;
-		protein: number;
-		carbs: number;
-		fat: number;
-		mealsLogged: number;
-	};
-	averages: {
-		calories: number;
-		protein: number;
-		carbs: number;
-		fat: number;
-	};
-}
+import { useNutritionData } from "@/lib/use-nutrition-data";
 
 export function NutritionBreakdown() {
 	const user = useStore((state) => state.user);
-	const [progressData, setProgressData] = useState<ProgressData | null>(null);
-
-	useEffect(() => {
-		const fetchProgress = async () => {
-			try {
-				const response = await fetch("/api/progress");
-				if (response.ok) {
-					const data = await response.json();
-					setProgressData(data);
-				}
-			} catch (error) {
-				console.error("Error fetching progress data:", error);
-			}
-		};
-
-		fetchProgress();
-	}, []);
+	const { progressData, loading } = useNutritionData();
 
 	const todayNutrition = progressData?.todayNutrition;
 	const averages = progressData?.averages;
@@ -86,6 +54,21 @@ export function NutritionBreakdown() {
 			percentage: Math.min(((todayNutrition?.fat || 0) / fatGoal) * 100, 100),
 		},
 	];
+
+	if (loading) {
+		return (
+			<Card>
+				<CardHeader>
+					<CardTitle className="font-display">Today's Nutrition</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<div className="text-center py-4 text-muted-foreground">
+						Loading nutrition data...
+					</div>
+				</CardContent>
+			</Card>
+		);
+	}
 
 	return (
 		<Card>

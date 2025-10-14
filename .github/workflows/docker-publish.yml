@@ -1,77 +1,77 @@
-# name: Build and Push Docker Images
+name: Build and Push Docker Images
 
-# on:
-#   push:
-#     branches: [ main ]
-#   pull_request:
-#     branches: [ main ]
-#   workflow_dispatch:
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
 
-# env:
-#   REGISTRY: docker.io
-#   SEEDER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/archer-health-seeder
-#   APP_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/archer-health-app
+env:
+  REGISTRY: docker.io
+  SEEDER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/archer-health-seeder
+  APP_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/archer-health-app
 
-# jobs:
-#   build-and-push:
-#     runs-on: ubuntu-latest
-#     permissions:
-#       contents: read
-#       packages: write
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
 
-#     steps:
-#     - name: Checkout repository
-#       uses: actions/checkout@v4
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-#     - name: Set up Docker Buildx
-#       uses: docker/setup-buildx-action@v3
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
 
-#     - name: Log in to Docker Hub
-#       uses: docker/login-action@v3
-#       with:
-#         username: ${{ secrets.DOCKERHUB_USERNAME }}
-#         password: ${{ secrets.DOCKERHUB_TOKEN }}
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-#     - name: Extract metadata for seeder image
-#       id: meta-seeder
-#       uses: docker/metadata-action@v5
-#       with:
-#         images: ${{ env.SEEDER_IMAGE }}
-#         tags: |
-#           type=ref,event=branch
-#           type=ref,event=pr
-#           type=sha,prefix={{branch}}-
-#           type=raw,value=latest,enable={{is_default_branch}}
+    - name: Extract metadata for seeder image
+      id: meta-seeder
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.SEEDER_IMAGE }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
 
-#     - name: Build and push seeder image
-#       uses: docker/build-push-action@v5
-#       with:
-#         context: .
-#         file: ./Dockerfile.seeder
-#         push: true
-#         tags: ${{ steps.meta-seeder.outputs.tags }}
-#         labels: ${{ steps.meta-seeder.outputs.labels }}
-#         cache-from: type=gha
-#         cache-to: type=gha,mode=max
+    - name: Build and push seeder image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile.seeder
+        push: true
+        tags: ${{ steps.meta-seeder.outputs.tags }}
+        labels: ${{ steps.meta-seeder.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
 
-#     - name: Extract metadata for app image
-#       id: meta-app
-#       uses: docker/metadata-action@v5
-#       with:
-#         images: ${{ env.APP_IMAGE }}
-#         tags: |
-#           type=ref,event=branch
-#           type=ref,event=pr
-#           type=sha,prefix={{branch}}-
-#           type=raw,value=latest,enable={{is_default_branch}}
+    - name: Extract metadata for app image
+      id: meta-app
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.APP_IMAGE }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
 
-#     - name: Build and push app image
-#       uses: docker/build-push-action@v5
-#       with:
-#         context: .
-#         file: ./Dockerfile
-#         push: true
-#         tags: ${{ steps.meta-app.outputs.tags }}
-#         labels: ${{ steps.meta-app.outputs.labels }}
-#         cache-from: type=gha
-#         cache-to: type=gha,mode=max
+    - name: Build and push app image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        push: true
+        tags: ${{ steps.meta-app.outputs.tags }}
+        labels: ${{ steps.meta-app.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
