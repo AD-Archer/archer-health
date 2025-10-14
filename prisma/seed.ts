@@ -156,7 +156,7 @@ async function seedNutrients(): Promise<{
 					let inserted = 0;
 					for (const nutrient of nutrients) {
 						await prisma.usdaNutrient.upsert({
-							where: { id: nutrient.id },
+							where: { nutrientNbr: nutrient.nutrientNbr },
 							update: nutrient,
 							create: nutrient,
 						});
