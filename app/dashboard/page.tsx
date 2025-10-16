@@ -143,7 +143,7 @@ export default function DashboardPage() {
 				});
 		} else if (isLoaded && !user) {
 			// Not authenticated, redirect to login
-			router.push("/login");
+			router.push("sign-in");
 		}
 	}, [isLoaded, user, updateUser, setGoals, router]);
 

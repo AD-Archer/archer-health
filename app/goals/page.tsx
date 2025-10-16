@@ -55,7 +55,7 @@ export default function GoalsPage() {
 					setIsLoading(false);
 				});
 		} else if (isLoaded && !user) {
-			router.push("/login");
+			router.push("sign-in");
 		}
 	}, [isLoaded, user, updateUser, setGoals, router]);
 

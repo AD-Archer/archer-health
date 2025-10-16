@@ -62,7 +62,7 @@ export default function ProfilePage() {
 				});
 		} else if (isLoaded && !user) {
 			// Not authenticated, redirect to login
-			router.push("/login");
+			router.push("sign-in");
 		}
 	}, [user, isLoaded, router]);
 
