@@ -3,85 +3,19 @@
 import { Bookmark, BookmarkCheck, Clock, Flame, Users } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { Recipe } from "@/types/recipe";
 
-export function RecipeGrid() {
-	const [recipes, setRecipes] = useState<Recipe[]>([]);
-	const [loading, setLoading] = useState(true);
-	const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
-	const sp = useSearchParams();
-	const abortRef = useRef<AbortController | null>(null);
+interface RecipeGridProps {
+	recipes: Recipe[];
+	loading: boolean;
+	savedIds: Set<string>;
+	toggleSave: (recipeId: string) => void;
+}
 
-	useEffect(() => {
-		const fetchRecipes = async () => {
-			setLoading(true);
-			abortRef.current?.abort();
-			const controller = new AbortController();
-			abortRef.current = controller;
-			try {
-				const qs = sp.toString();
-				const url = qs ? `/api/recipes?${qs}` : "/api/recipes";
-				const response = await fetch(url, {
-					signal: controller.signal,
-					cache: "no-store",
-				});
-				if (response.ok) {
-					const data = await response.json();
-					setRecipes(data);
-				}
-			} catch (error) {
-				if ((error as unknown as { name?: string })?.name !== "AbortError") {
-					console.error("Error fetching recipes:", error);
-				}
-			} finally {
-				setLoading(false);
-			}
-		};
-
-		fetchRecipes();
-		return () => abortRef.current?.abort();
-	}, [sp]);
-
-	useEffect(() => {
-		const fetchSaved = async () => {
-			try {
-				const res = await fetch("/api/saved-recipes", { cache: "no-store" });
-				if (res.ok) {
-					const ids: string[] = await res.json();
-					setSavedIds(new Set(ids));
-				}
-			} catch {
-				// ignore network errors
-			}
-		};
-		fetchSaved();
-	}, []);
-
-	const toggleSave = async (recipeId: string) => {
-		const optimistic = new Set(savedIds);
-		const isSaved = optimistic.has(recipeId);
-		if (isSaved) optimistic.delete(recipeId);
-		else optimistic.add(recipeId);
-		setSavedIds(optimistic);
-		try {
-			const res = await fetch("/api/saved-recipes", {
-				method: isSaved ? "DELETE" : "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ recipeId }),
-			});
-			if (!res.ok) throw new Error("Request failed");
-		} catch {
-			// revert on failure
-			const revert = new Set(savedIds);
-			setSavedIds(revert);
-		}
-	};
-
+export function RecipeGrid({ recipes, loading, savedIds, toggleSave }: RecipeGridProps) {
 	if (loading) {
 		return (
 			<div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

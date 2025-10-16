@@ -1,7 +1,6 @@
 import { DesktopNav } from "@/components/desktop-nav";
 import { MobileNav } from "@/components/mobile-nav";
-import { RecipeGrid } from "./components/recipe-grid";
-import { RecipesHeader } from "./components/recipes-header";
+import { Recipes } from "./components/recipes";
 
 export default function RecipesPage() {
 	return (
@@ -9,8 +8,7 @@ export default function RecipesPage() {
 			<DesktopNav />
 
 			<main className="container py-6 pb-24 md:pb-6 space-y-6">
-				<RecipesHeader />
-				<RecipeGrid />
+				<Recipes />
 			</main>
 
 			<MobileNav />

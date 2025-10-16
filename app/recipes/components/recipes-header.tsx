@@ -1,8 +1,6 @@
 "use client";
 
 import { Bookmark, Filter, Search } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,95 +22,59 @@ const cuisines = [
 	"Mexican",
 ];
 
-export function RecipesHeader() {
-	const router = useRouter();
-	const sp = useSearchParams();
+interface RecipesHeaderProps {
+	searchQuery: string;
+	setSearchQuery: (query: string) => void;
+	selectedCategory: string;
+	setSelectedCategory: (category: string) => void;
+	selectedCuisine: string;
+	setSelectedCuisine: (cuisine: string) => void;
+	showFilters: boolean;
+	setShowFilters: (show: boolean) => void;
+	calorieBand: string;
+	setCalorieBand: (band: string) => void;
+	caloriesMin: string;
+	setCaloriesMin: (min: string) => void;
+	caloriesMax: string;
+	setCaloriesMax: (max: string) => void;
+	timeMax: string;
+	setTimeMax: (max: string) => void;
+	proteinMin: string;
+	setProteinMin: (min: string) => void;
+	carbsMax: string;
+	setCarbsMax: (max: string) => void;
+	fatMax: string;
+	setFatMax: (max: string) => void;
+	savedOnly: boolean;
+	setSavedOnly: (saved: boolean) => void;
+}
 
-	const [searchQuery, setSearchQuery] = useState("");
-	const [selectedCategory, setSelectedCategory] = useState("All");
-	const [selectedCuisine, setSelectedCuisine] = useState("All");
-	const [showFilters, setShowFilters] = useState(false);
-	const [calorieBand, setCalorieBand] = useState<string>(""); // low | medium | high
-	const [caloriesMin, setCaloriesMin] = useState<string>("");
-	const [caloriesMax, setCaloriesMax] = useState<string>("");
-	const [timeMax, setTimeMax] = useState<string>("");
-	const [proteinMin, setProteinMin] = useState<string>("");
-	const [carbsMax, setCarbsMax] = useState<string>("");
-	const [fatMax, setFatMax] = useState<string>("");
-	const [savedOnly, setSavedOnly] = useState<boolean>(false);
-
-	// Initialize state from URL on mount and when URL changes elsewhere
-	useEffect(() => {
-		const get = (k: string) => sp.get(k) ?? "";
-		setSearchQuery(get("search"));
-		setSelectedCategory(get("category") || "All");
-		setSelectedCuisine(get("cuisine") || "All");
-		setCalorieBand(get("calorieBand"));
-		setCaloriesMin(get("caloriesMin"));
-		setCaloriesMax(get("caloriesMax"));
-		setTimeMax(get("timeMax"));
-		setProteinMin(get("proteinMin"));
-		setCarbsMax(get("carbsMax"));
-		setFatMax(get("fatMax"));
-		setSavedOnly(get("saved") === "1");
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [sp]);
-
-	// Debounced URL updater
-	const debounceRef = useRef<number | undefined>(undefined);
-	const pushParams = useCallback(
-		(params: Record<string, string | undefined>) => {
-			const usp = new URLSearchParams(window.location.search);
-			Object.entries(params).forEach(([key, value]) => {
-				if (value && value !== "" && value !== "All") {
-					usp.set(key, value);
-				} else {
-					usp.delete(key);
-				}
-			});
-			const qs = usp.toString();
-			router.push(qs ? `?${qs}` : "?", { scroll: false });
-		},
-		[router],
-	);
-
-	const triggerUpdate = useCallback(() => {
-		window.clearTimeout(debounceRef.current);
-		debounceRef.current = window.setTimeout(() => {
-			pushParams({
-				search: searchQuery || undefined,
-				category: selectedCategory,
-				cuisine: selectedCuisine,
-				calorieBand: calorieBand || undefined,
-				caloriesMin: calorieBand ? undefined : caloriesMin || undefined,
-				caloriesMax: calorieBand ? undefined : caloriesMax || undefined,
-				timeMax: timeMax || undefined,
-				proteinMin: proteinMin || undefined,
-				carbsMax: carbsMax || undefined,
-				fatMax: fatMax || undefined,
-				saved: savedOnly ? "1" : undefined,
-			});
-		}, 300);
-	}, [
-		pushParams,
-		searchQuery,
-		selectedCategory,
-		selectedCuisine,
-		calorieBand,
-		caloriesMin,
-		caloriesMax,
-		timeMax,
-		proteinMin,
-		carbsMax,
-		fatMax,
-		savedOnly,
-	]);
-
-	// Trigger updates on relevant state change
-	useEffect(() => {
-		triggerUpdate();
-	}, [triggerUpdate]);
-
+export function RecipesHeader({
+	searchQuery,
+	setSearchQuery,
+	selectedCategory,
+	setSelectedCategory,
+	selectedCuisine,
+	setSelectedCuisine,
+	showFilters,
+	setShowFilters,
+	calorieBand,
+	setCalorieBand,
+	caloriesMin,
+	setCaloriesMin,
+	caloriesMax,
+	setCaloriesMax,
+	timeMax,
+	setTimeMax,
+	proteinMin,
+	setProteinMin,
+	carbsMax,
+	setCarbsMax,
+	fatMax,
+	setFatMax,
+	savedOnly,
+	setSavedOnly,
+}: RecipesHeaderProps) {
 	return (
 		<div className="space-y-4">
 			<div>
@@ -146,7 +108,7 @@ export function RecipesHeader() {
 				</Button>
 				<Button
 					variant={savedOnly ? "default" : "outline"}
-					onClick={() => setSavedOnly((v) => !v)}
+					onClick={() => setSavedOnly(!savedOnly)}
 					className="shrink-0"
 				>
 					<Bookmark className="w-4 h-4 mr-2" />
