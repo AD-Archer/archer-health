@@ -1,9 +1,10 @@
 "use client";
 
-import { Clock, Flame, Plus, Users } from "lucide-react";
+import { Bookmark, BookmarkCheck, Clock, Flame, Users } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,34 +13,74 @@ import type { Recipe } from "@/types/recipe";
 export function RecipeGrid() {
 	const [recipes, setRecipes] = useState<Recipe[]>([]);
 	const [loading, setLoading] = useState(true);
+	const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+	const sp = useSearchParams();
+	const abortRef = useRef<AbortController | null>(null);
 
 	useEffect(() => {
 		const fetchRecipes = async () => {
 			setLoading(true);
+			abortRef.current?.abort();
+			const controller = new AbortController();
+			abortRef.current = controller;
 			try {
-				// Read current query params from URL
-				const params = new URLSearchParams(window.location.search);
-				const qs = params.toString();
+				const qs = sp.toString();
 				const url = qs ? `/api/recipes?${qs}` : "/api/recipes";
-				const response = await fetch(url);
+				const response = await fetch(url, {
+					signal: controller.signal,
+					cache: "no-store",
+				});
 				if (response.ok) {
 					const data = await response.json();
 					setRecipes(data);
 				}
 			} catch (error) {
-				console.error("Error fetching recipes:", error);
+				if ((error as unknown as { name?: string })?.name !== "AbortError") {
+					console.error("Error fetching recipes:", error);
+				}
 			} finally {
 				setLoading(false);
 			}
 		};
 
 		fetchRecipes();
+		return () => abortRef.current?.abort();
+	}, [sp]);
 
-		// Re-fetch when the URL changes (listens to popstate)
-		const onPop = () => fetchRecipes();
-		window.addEventListener("popstate", onPop);
-		return () => window.removeEventListener("popstate", onPop);
+	useEffect(() => {
+		const fetchSaved = async () => {
+			try {
+				const res = await fetch("/api/saved-recipes", { cache: "no-store" });
+				if (res.ok) {
+					const ids: string[] = await res.json();
+					setSavedIds(new Set(ids));
+				}
+			} catch {
+				// ignore network errors
+			}
+		};
+		fetchSaved();
 	}, []);
+
+	const toggleSave = async (recipeId: string) => {
+		const optimistic = new Set(savedIds);
+		const isSaved = optimistic.has(recipeId);
+		if (isSaved) optimistic.delete(recipeId);
+		else optimistic.add(recipeId);
+		setSavedIds(optimistic);
+		try {
+			const res = await fetch("/api/saved-recipes", {
+				method: isSaved ? "DELETE" : "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ recipeId }),
+			});
+			if (!res.ok) throw new Error("Request failed");
+		} catch {
+			// revert on failure
+			const revert = new Set(savedIds);
+			setSavedIds(revert);
+		}
+	};
 
 	if (loading) {
 		return (
@@ -85,14 +126,21 @@ export function RecipeGrid() {
 							/>
 							<Button
 								size="icon"
-								className="absolute top-3 right-3 rounded-full shadow-lg"
+								className="absolute top-3 right-3 rounded-full shadow-lg bg-background hover:bg-background/80"
 								variant="secondary"
 								onClick={(e) => {
 									e.preventDefault();
-									// TODO: Add to meal functionality
+									toggleSave(recipe.id);
 								}}
+								aria-label={
+									savedIds.has(recipe.id) ? "Unsave recipe" : "Save recipe"
+								}
 							>
-								<Plus className="w-4 h-4" />
+								{savedIds.has(recipe.id) ? (
+									<BookmarkCheck className="w-4 h-4" />
+								) : (
+									<Bookmark className="w-4 h-4" />
+								)}
 							</Button>
 						</div>
 						<CardContent className="p-4 space-y-3">

@@ -200,10 +200,11 @@ export async function GET(request: NextRequest) {
 
 			foods = [...transformedUsdaFoods, ...transformedUserFoods];
 		} else {
-			// Get user's foods only
+			// Get user's foods only, allow limit
 			const userFoods = await prisma.food.findMany({
 				where: { userId: user.id },
 				orderBy: { createdAt: "desc" },
+				take: limit,
 			});
 
 			foods = userFoods.map((food) => ({

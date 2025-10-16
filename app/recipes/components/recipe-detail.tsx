@@ -2,6 +2,8 @@
 
 import {
 	ArrowLeft,
+	Bookmark,
+	BookmarkCheck,
 	CheckCircle,
 	ChefHat,
 	Clock,
@@ -13,7 +15,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AddEntryModal } from "@/components/add-entry-modal";
 // Badge component no longer used in this file; using inline pill spans for hero labels and tag buttons
 import { Button } from "@/components/ui/button";
@@ -91,6 +93,38 @@ export function RecipeDetail({ recipe }: RecipeDetailProps) {
 	const addMealEntry = useStore((s) => s.addMealEntry);
 	const router = useRouter();
 
+	// Saved toggle state
+	const [isSaved, setIsSaved] = useState(false);
+	useEffect(() => {
+		const load = async () => {
+			try {
+				const res = await fetch("/api/saved-recipes", { cache: "no-store" });
+				if (res.ok) {
+					const ids: string[] = await res.json();
+					setIsSaved(ids.includes(recipe.id));
+				}
+			} catch {
+				// ignore
+			}
+		};
+		load();
+	}, [recipe.id]);
+
+	const toggleSave = async () => {
+		const next = !isSaved;
+		setIsSaved(next);
+		try {
+			const res = await fetch("/api/saved-recipes", {
+				method: next ? "POST" : "DELETE",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ recipeId: recipe.id }),
+			});
+			if (!res.ok) throw new Error("save failed");
+		} catch {
+			setIsSaved(!next);
+		}
+	};
+
 	const handleQuickAdd = useCallback(async () => {
 		setIsQuickAdding(true);
 		try {
@@ -137,12 +171,25 @@ export function RecipeDetail({ recipe }: RecipeDetailProps) {
 	return (
 		<div className="max-w-4xl mx-auto space-y-6">
 			{/* Back Button */}
-			<Button variant="ghost" asChild className="mb-4">
-				<Link href="/recipes">
-					<ArrowLeft className="w-4 h-4 mr-2" />
-					Back to Recipes
-				</Link>
-			</Button>
+			<div className="flex items-center justify-between mb-4">
+				<Button variant="ghost" asChild>
+					<Link href="/recipes">
+						<ArrowLeft className="w-4 h-4 mr-2" />
+						Back to Recipes
+					</Link>
+				</Button>
+				<Button onClick={toggleSave} variant="secondary" size="sm">
+					{isSaved ? (
+						<>
+							<BookmarkCheck className="w-4 h-4 mr-2" /> Saved
+						</>
+					) : (
+						<>
+							<Bookmark className="w-4 h-4 mr-2" /> Save for later
+						</>
+					)}
+				</Button>
+			</div>
 
 			{/* Hero Section */}
 			<div className="relative aspect-video rounded-lg overflow-hidden">

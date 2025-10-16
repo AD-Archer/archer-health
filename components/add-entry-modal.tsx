@@ -328,32 +328,11 @@ function LogFoodTab({
 	const loadRecentFoods = useCallback(async () => {
 		setIsLoadingRecent(true);
 		try {
-			// Get recent meal entries and extract unique foods
-			const response = await fetch("/api/todays-meals");
+			// Fetch the 3 most recent user foods
+			const response = await fetch("/api/foods?limit=3");
 			if (response.ok) {
-				const data = await response.json();
-				const recentFoodIds = new Set<string>();
-				const recentFoodsList: Food[] = [];
-
-				// Get foods from today's entries, most recent first
-				for (const entry of data.mealEntries.slice(-10)) {
-					// Check last 10 entries
-					if (entry.foodId && !recentFoodIds.has(entry.foodId)) {
-						try {
-							const foodResponse = await fetch(`/api/foods/${entry.foodId}`);
-							if (foodResponse.ok) {
-								const food = await foodResponse.json();
-								recentFoodsList.push(food);
-								recentFoodIds.add(entry.foodId);
-								if (recentFoodsList.length >= 3) break;
-							}
-						} catch (error) {
-							console.error("Error fetching food:", error);
-						}
-					}
-				}
-
-				setRecentFoods(recentFoodsList);
+				const data: Food[] = await response.json();
+				setRecentFoods(data.slice(0, 3));
 			}
 		} catch (error) {
 			console.error("Error loading recent foods:", error);
