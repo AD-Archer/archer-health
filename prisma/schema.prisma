@@ -286,6 +286,8 @@ model UsdaFoodCategory {
   foods       UsdaFood[]
 }
 
+// Optional USDA auxiliary dataset models were removed to keep the schema minimal for a meal log app
+
 model UsdaMeasureUnit {
   id   Int    @id
   name String @unique

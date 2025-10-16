@@ -440,7 +440,6 @@ async function seedFoodPortions(): Promise<{
 			.on("error", reject);
 	});
 }
-
 async function main() {
 	const overallStartTime = Date.now();
 	try {

@@ -10,7 +10,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
-
 export function ProfileHeader() {
 	const { user, isLoaded } = useUser();
 	const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);

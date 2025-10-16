@@ -178,7 +178,15 @@ async function seedMealsFromMealDB() {
 		}
 
 		let seededCount = 0;
+		let updatedCount = 0;
 		let skippedCount = 0;
+
+		// Flags: --as-foods will also upsert Foods for each MealDB recipe
+		//        --update will update existing recipes by name+userId if found
+		const args = new Set(process.argv.slice(2));
+		const createFoodsAlso =
+			args.has("--as-foods") || process.env.MEALDB_AS_FOOD === "true";
+		const updateExisting = args.has("--update") || true; // default to update existing
 
 		// Process recipes in batches to avoid overwhelming the database
 		const batchSize = 10;
@@ -212,28 +220,81 @@ async function seedMealsFromMealDB() {
 						continue;
 					}
 
-					// Check if recipe already exists (skip for now since we want to reseed)
-					// const existingRecipe = await prisma.recipe.findFirst({
-					//   where: {
-					//     name: recipe.name,
-					//     createdBy: systemUser.name || "MealDB",
-					//   },
-					// });
-
-					// if (existingRecipe) {
-					//   skippedCount++;
-					//   continue;
-					// }
-
-					await prisma.recipe.create({
-						data: {
-							...recipe,
+					// Update if exists by (name, user)
+					const existingRecipe = await prisma.recipe.findFirst({
+						where: {
+							name: recipe.name,
 							userId: systemUser.id,
-							createdBy: systemUser.name || "MealDB",
 						},
 					});
 
-					seededCount++;
+					if (existingRecipe && updateExisting) {
+						await prisma.recipe.update({
+							where: { id: existingRecipe.id },
+							data: {
+								description: recipe.description,
+								image: recipe.image,
+								category: recipe.category,
+								cuisine: recipe.cuisine,
+								prepTime: recipe.prepTime,
+								cookTime: recipe.cookTime,
+								servings: recipe.servings,
+								difficulty: recipe.difficulty,
+								calories: recipe.calories,
+								nutrition: recipe.nutrition,
+								ingredients: recipe.ingredients,
+								instructions: recipe.instructions,
+								tags: recipe.tags,
+								youtube: recipe.youtube,
+								source: recipe.source,
+							},
+						});
+						updatedCount++;
+					} else {
+						await prisma.recipe.create({
+							data: {
+								...recipe,
+								userId: systemUser.id,
+								createdBy: systemUser.name || "MealDB",
+							},
+						});
+						seededCount++;
+					}
+
+					// Optionally also create/update as a Food entry (one serving)
+					if (createFoodsAlso) {
+						const foodName = `${recipe.name} (MealDB)`;
+						const existingFood = await prisma.food.findFirst({
+							where: { name: foodName, userId: systemUser.id },
+						});
+						const foodData: Parameters<typeof prisma.food.create>[0]["data"] = {
+							name: foodName,
+							calories: recipe.calories,
+							protein: Math.round((recipe.nutrition?.protein as number) ?? 0),
+							carbs: Math.round((recipe.nutrition?.carbs as number) ?? 0),
+							fat: Math.round((recipe.nutrition?.fat as number) ?? 0),
+							fiber:
+								((recipe.nutrition as Record<string, unknown> | undefined)
+									?.fiber as number | null) ?? null,
+							sugar:
+								((recipe.nutrition as Record<string, unknown> | undefined)
+									?.sugar as number | null) ?? null,
+							servingSize: "1",
+							servingUnit: "serving",
+							isPublic: true,
+							createdBy: systemUser.name || "MealDB",
+							userId: systemUser.id,
+							category: recipe.category,
+						};
+						if (existingFood) {
+							await prisma.food.update({
+								where: { id: existingFood.id },
+								data: foodData,
+							});
+						} else {
+							await prisma.food.create({ data: foodData });
+						}
+					}
 				} catch (error) {
 					console.error(`Error seeding recipe "${mealDBRecipe.title}":`, error);
 					skippedCount++;
@@ -245,7 +306,9 @@ async function seedMealsFromMealDB() {
 			);
 		}
 
-		console.log(`Successfully seeded ${seededCount} recipes from MealDB`);
+		console.log(
+			`Successfully seeded ${seededCount} recipes from MealDB (updated ${updatedCount})`,
+		);
 		if (skippedCount > 0) {
 			console.log(
 				`Skipped ${skippedCount} recipes due to errors or missing data`,
