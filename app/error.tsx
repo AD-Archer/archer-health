@@ -1,7 +1,8 @@
 "use client";
 
-// Force edge runtime to avoid Clerk prerendering issues
-export const runtime = "edge";
+// Use Node.js runtime to ensure Node APIs (like fs) are available
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 import { useUser } from "@clerk/nextjs";
 import { AlertTriangle, Home, RefreshCw } from "lucide-react";

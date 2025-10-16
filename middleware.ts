@@ -1,8 +1,14 @@
 import { clerkMiddleware } from "@clerk/nextjs/server";
 
-export default clerkMiddleware({
-	authorizedParties: ["https://health.adarcher.app"],
-});
+const isProduction = process.env.NODE_ENV === "production";
+
+export default clerkMiddleware(
+	isProduction
+		? {
+				authorizedParties: ["https://health.adarcher.app"],
+			}
+		: {},
+);
 
 export const config = {
 	matcher: [

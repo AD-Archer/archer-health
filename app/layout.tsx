@@ -114,8 +114,7 @@ export default function RootLayout({
 	return (
 		<ClerkProvider
 			publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
-			afterSignInUrl="/dashboard"
-			afterSignUpUrl="/dashboard"
+			signInFallbackRedirectUrl="/dashboard"
 		>
 			<html lang="en" className={`${inter.variable} ${poppins.variable}`}>
 				<head>
