@@ -66,15 +66,14 @@ RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
 # Copy package files
 COPY package.json pnpm-lock.yaml* ./
 
-# Install only production dependencies
-RUN pnpm install --frozen-lockfile --prod && pnpm store prune
+# Install dependencies (including dev dependencies for Next.js server)
+RUN pnpm install --frozen-lockfile
 
-# Copy built application and generated Prisma client from base stage
-COPY --from=base --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=base --chown=nextjs:nodejs /app/.next/static ./.next/static
+# Copy built application from base stage
+COPY --from=base --chown=nextjs:nodejs /app/.next ./.next
 COPY --from=base --chown=nextjs:nodejs /app/public ./public
-COPY --from=base --chown=nextjs:nodejs /app/prisma ./prisma
-COPY --from=base --chown=nextjs:nodejs /app/data ./data
+COPY --from=base --chown=nextjs:nodejs /app/package.json ./package.json
+COPY --from=base --chown=nextjs:nodejs /app/node_modules ./node_modules
 
 # Switch to non-root user
 USER nextjs
@@ -87,4 +86,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT}/api/health || exit 1
 
 # Start the application with migration
-CMD ["sh", "-c", "npx prisma migrate deploy || echo 'Migration failed, continuing...' && node server.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy || echo 'Migration failed, continuing...' && npm start"]

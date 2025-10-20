@@ -24,7 +24,7 @@ const nextConfig: NextConfig = {
 			},
 		],
 	},
-	output: "standalone",
+	// output: "standalone", // Temporarily disable standalone output to test API routes
 };
 
 export default nextConfig;
