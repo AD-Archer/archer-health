@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DesktopNav } from "@/components/desktop-nav";
 import { MobileNav } from "@/components/mobile-nav";
+import { useAuthEnabled } from "@/lib/use-auth-enabled";
 import { ProfileHeader } from "./components/profile-header";
 import { ProfileStats } from "./components/profile-stats";
 import { SettingsSection } from "./components/settings-section";
@@ -23,14 +24,14 @@ interface UserProfile {
 }
 
 export default function ProfilePage() {
-	const clerkKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 	const router = useRouter();
-	const { user, isLoaded } = clerkKey
+	const authEnabled = useAuthEnabled();
+	const { user, isLoaded } = authEnabled
 		? useUser()
-		: { user: null, isLoaded: true };
+		: { user: null, isLoaded: authEnabled === null ? false : true };
 	const [isCheckingProfile, setIsCheckingProfile] = useState(true);
 
-	if (!clerkKey) {
+	if (authEnabled === false) {
 		return (
 			<div className="min-h-screen bg-gray-50 flex items-center justify-center">
 				<div className="text-center">

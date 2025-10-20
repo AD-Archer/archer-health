@@ -9,6 +9,7 @@ import { useEffect } from "react";
 import { DesktopNav } from "@/components/desktop-nav";
 import { MobileNav } from "@/components/mobile-nav";
 import { useStore } from "@/lib/store";
+import { useAuthEnabled } from "@/lib/use-auth-enabled";
 import { CalorieChart } from "./components/calorie-chart";
 import { GoalProgress } from "./components/goal-progress";
 import { NutritionBreakdown } from "./components/nutrition-breakdown";
@@ -19,13 +20,13 @@ import { WeeklyStats } from "./components/weekly-stats";
 import { WeightChart } from "./components/weight-chart";
 
 export default function ProgressPage() {
-	const clerkKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-	const { isLoaded, user } = clerkKey
+	const authEnabled = useAuthEnabled();
+	const { isLoaded, user } = authEnabled
 		? useUser()
-		: { isLoaded: true, user: null };
+		: { isLoaded: authEnabled === null ? false : true, user: null };
 	const { setGoals } = useStore();
 
-	if (!clerkKey) {
+	if (authEnabled === false) {
 		return (
 			<div className="min-h-screen bg-gray-50 flex items-center justify-center">
 				<div className="text-center">

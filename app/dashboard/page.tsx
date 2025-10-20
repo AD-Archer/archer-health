@@ -3,6 +3,8 @@
 // Force edge runtime to avoid Clerk prerendering issues
 export const runtime = "edge";
 
+export const dynamic = "force-dynamic";
+
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -10,6 +12,7 @@ import type { MealEntry, User } from "@/app/data/data";
 import { DesktopNav } from "@/components/desktop-nav";
 import { MobileNav } from "@/components/mobile-nav";
 import { useStore } from "@/lib/store";
+import { useAuthEnabled } from "@/lib/use-auth-enabled";
 import { DashboardHeader } from "./components/dashboard-header";
 
 import { MacrosCard } from "./components/macros-card";
@@ -66,18 +69,18 @@ interface TodaysMacros {
 }
 
 export default function DashboardPage() {
-	const clerkKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 	const router = useRouter();
-	const { user, isLoaded } = clerkKey
+	const authEnabled = useAuthEnabled();
+	const { user, isLoaded } = authEnabled
 		? useUser()
-		: { user: null, isLoaded: true };
+		: { user: null, isLoaded: authEnabled === null ? false : true };
 	const { updateUser, setGoals } = useStore();
 	const [isCheckingProfile, setIsCheckingProfile] = useState(true);
 	const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 	const [todaysMeals, setTodaysMeals] = useState<TodaysMeals | null>(null);
 	const [todaysMacros, setTodaysMacros] = useState<TodaysMacros | null>(null);
 
-	if (!clerkKey) {
+	if (authEnabled === false) {
 		return (
 			<div className="min-h-screen bg-gray-50 flex items-center justify-center">
 				<div className="text-center">

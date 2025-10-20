@@ -12,7 +12,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-
 import {
 	Select,
 	SelectContent,
@@ -20,6 +19,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { useAuthEnabled } from "@/lib/use-auth-enabled";
 import { useUnitConversion } from "@/lib/use-unit-conversion";
 
 interface UserProfile {
@@ -121,18 +121,18 @@ const calculateWaterGoal = (
 };
 
 export default function OnboardingPage() {
-	const clerkKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 	const router = useRouter();
-	const { user, isLoaded } = clerkKey
+	const authEnabled = useAuthEnabled();
+	const { user, isLoaded } = authEnabled
 		? useUser()
-		: { user: null, isLoaded: true };
+		: { user: null, isLoaded: authEnabled === null ? false : true };
 	const { displayWeightToKg, displayWeeklyGoalToKg } = useUnitConversion();
 	const [formData, setFormData] = useState<UserProfile>({});
 	const [waterUnit] = useState<string>("oz");
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState("");
 
-	if (!clerkKey) {
+	if (authEnabled === false) {
 		return (
 			<div className="min-h-screen bg-gray-50 flex items-center justify-center">
 				<div className="text-center">

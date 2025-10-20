@@ -1,8 +1,6 @@
 "use client";
 
-// Use Node.js runtime to ensure Node APIs (like fs) are available
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+// This is a client-side error boundary component; do not export runtime/dynamic here.
 
 import { useUser } from "@clerk/nextjs";
 import { AlertTriangle, Home, RefreshCw } from "lucide-react";
@@ -12,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { useAuthEnabled } from "@/lib/use-auth-enabled";
 
 interface ErrorPageProps {
 	error: Error & { digest?: string };
@@ -19,8 +18,8 @@ interface ErrorPageProps {
 }
 
 export default function ErrorPage({ error, reset }: ErrorPageProps) {
-	const clerkKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-	const { user } = clerkKey ? useUser() : { user: null };
+	const authEnabled = useAuthEnabled();
+	const { user } = authEnabled ? useUser() : { user: null };
 	const [includeContactInfo, setIncludeContactInfo] = useState(false);
 
 	const reportErrorToAdmin = useCallback(
@@ -40,7 +39,6 @@ ${user.primaryEmailAddress?.emailAddress ? `Email: ${user.primaryEmailAddress.em
 					subject: "Archer Health - Application Error Report",
 					message: `
 Application Error Report
-========================
 
 Time: ${new Date().toISOString()}
 Environment: Production

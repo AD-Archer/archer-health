@@ -1,6 +1,5 @@
 services:
   archer-health:
-    build: .
     image: adarcher/archer-health:latest
     container_name: archer-health-app
     ports:

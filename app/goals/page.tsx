@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { DesktopNav } from "@/components/desktop-nav";
 import { MobileNav } from "@/components/mobile-nav";
 import { useStore } from "@/lib/store";
+import { useAuthEnabled } from "@/lib/use-auth-enabled";
 import { AchievementSystem } from "./components/achievement-system";
 import { Achievements } from "./components/achievements";
 import { GoalsHeader } from "./components/goals-header";
@@ -18,15 +19,15 @@ import { MacroGoals } from "./components/macro-goals";
 import { WeightGoal } from "./components/weight-goal";
 
 export default function GoalsPage() {
-	const clerkKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 	const router = useRouter();
-	const { user, isLoaded } = clerkKey
+	const authEnabled = useAuthEnabled();
+	const { user, isLoaded } = authEnabled
 		? useUser()
-		: { user: null, isLoaded: true };
+		: { user: null, isLoaded: authEnabled === null ? false : true };
 	const { updateUser, setGoals } = useStore();
 	const [isLoading, setIsLoading] = useState(true);
 
-	if (!clerkKey) {
+	if (authEnabled === false) {
 		return (
 			<div className="min-h-screen bg-gray-50 flex items-center justify-center">
 				<div className="text-center">
