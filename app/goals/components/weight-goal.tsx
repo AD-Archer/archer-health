@@ -295,51 +295,27 @@ export function WeightGoal() {
 	const handleSetAutomatically = async () => {
 		if (!nutritionNeeds) return;
 
-		setIsUpdating(true);
-		try {
-			const response = await fetch("/api/user-profile", {
-				method: "PUT",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					dailyCalorieGoal: nutritionNeeds.calories,
-					macroGoals: nutritionNeeds.macros,
-					name: user.name,
-					email: user.email,
-				}),
-			});
+		// Populate the edit form with calculated values
+		setNutritionEditForm({
+			calories: nutritionNeeds.calories.toString(),
+			protein: nutritionNeeds.macros.protein.toString(),
+			carbs: nutritionNeeds.macros.carbs.toString(),
+			fat: nutritionNeeds.macros.fat.toString(),
+		});
 
-			if (response.ok) {
-				const data = await response.json();
-				updateUser({
-					dailyCalorieGoal: data.user.dailyCalorieGoal,
-					macroGoals: data.user.macroGoals,
-				});
-				toast.success("Nutrition goals have been set automatically!", {
-					description:
-						"Your goals are now based on your calculated nutritional needs.",
-				});
-			} else {
-				const errorData = await response.json().catch(() => ({}));
-				console.error("Failed to set automatic nutrition goals:", errorData);
-				toast.error(
-					`Failed to set automatic goals: ${errorData.error || "Unknown error"}`,
-				);
-			}
-		} catch (error) {
-			console.error("Error setting automatic nutrition goals:", error);
-			toast.error("Network error. Please check your connection and try again.");
-		} finally {
-			setIsUpdating(false);
-		}
+		// Open the edit form
+		setIsEditingNutrition(true);
+
+		toast.success("Recommended values loaded!", {
+			description: "Review the values and click Save to apply them.",
+		});
 	};
 
 	const handleSaveNutritionEdit = async () => {
-		const calories = parseInt(nutritionEditForm.calories);
-		const protein = parseInt(nutritionEditForm.protein);
-		const carbs = parseInt(nutritionEditForm.carbs);
-		const fat = parseInt(nutritionEditForm.fat);
+		const calories = parseInt(nutritionEditForm.calories, 10);
+		const protein = parseInt(nutritionEditForm.protein, 10);
+		const carbs = parseInt(nutritionEditForm.carbs, 10);
+		const fat = parseInt(nutritionEditForm.fat, 10);
 
 		if (Number.isNaN(calories) || calories <= 0) {
 			toast.error("Please enter a valid calorie goal");
