@@ -20,9 +20,11 @@ export async function GET(_request: NextRequest) {
 		}
 
 		// Check if macro goals need to be calculated
-		let macroGoals = user.macroGoals
-			? JSON.parse(user.macroGoals as string)
-			: null;
+		let macroGoals = user.macroGoals as {
+			protein: number;
+			carbs: number;
+			fat: number;
+		} | null;
 		let dailyCalorieGoal = user.dailyCalorieGoal;
 		const hasCompleteProfile =
 			user.currentWeight &&
@@ -68,7 +70,7 @@ export async function GET(_request: NextRequest) {
 			await prisma.user.update({
 				where: { clerkId: userId },
 				data: {
-					macroGoals: JSON.stringify(macroGoals),
+					macroGoals: macroGoals,
 					dailyCalorieGoal: dailyCalorieGoal,
 				},
 			});
@@ -213,9 +215,7 @@ export async function PUT(request: NextRequest) {
 				waterGoalUnit: waterGoalUnit || "oz",
 				name,
 				email,
-				macroGoals: finalMacroGoals
-					? JSON.stringify(finalMacroGoals)
-					: undefined,
+				macroGoals: finalMacroGoals,
 				dailyCalorieGoal: finalDailyCalorieGoal,
 			},
 			create: {
@@ -235,9 +235,7 @@ export async function PUT(request: NextRequest) {
 				waterGoalUnit: waterGoalUnit || "oz",
 				name,
 				email,
-				macroGoals: finalMacroGoals
-					? JSON.stringify(finalMacroGoals)
-					: undefined,
+				macroGoals: finalMacroGoals,
 				dailyCalorieGoal: finalDailyCalorieGoal,
 			},
 		});
@@ -262,9 +260,7 @@ export async function PUT(request: NextRequest) {
 		// Parse macro goals for response
 		const responseUser = {
 			...updatedUser,
-			macroGoals: updatedUser.macroGoals
-				? JSON.parse(updatedUser.macroGoals as string)
-				: null,
+			macroGoals: updatedUser.macroGoals,
 		};
 
 		return NextResponse.json({ user: responseUser });
