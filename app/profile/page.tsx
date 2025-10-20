@@ -23,9 +23,28 @@ interface UserProfile {
 }
 
 export default function ProfilePage() {
+	const clerkKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 	const router = useRouter();
-	const { user, isLoaded } = useUser();
+	const { user, isLoaded } = clerkKey
+		? useUser()
+		: { user: null, isLoaded: true };
 	const [isCheckingProfile, setIsCheckingProfile] = useState(true);
+
+	if (!clerkKey) {
+		return (
+			<div className="min-h-screen bg-gray-50 flex items-center justify-center">
+				<div className="text-center">
+					<h1 className="text-2xl font-bold text-gray-900 mb-4">
+						Authentication Disabled
+					</h1>
+					<p className="text-gray-600">
+						Please set NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY to enable
+						authentication.
+					</p>
+				</div>
+			</div>
+		);
+	}
 
 	useEffect(() => {
 		if (isLoaded && user) {

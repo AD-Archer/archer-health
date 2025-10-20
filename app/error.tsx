@@ -19,7 +19,8 @@ interface ErrorPageProps {
 }
 
 export default function ErrorPage({ error, reset }: ErrorPageProps) {
-	const { user } = useUser();
+	const clerkKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+	const { user } = clerkKey ? useUser() : { user: null };
 	const [includeContactInfo, setIncludeContactInfo] = useState(false);
 
 	const reportErrorToAdmin = useCallback(

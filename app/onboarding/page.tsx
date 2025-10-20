@@ -121,13 +121,32 @@ const calculateWaterGoal = (
 };
 
 export default function OnboardingPage() {
+	const clerkKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 	const router = useRouter();
-	const { user, isLoaded } = useUser();
+	const { user, isLoaded } = clerkKey
+		? useUser()
+		: { user: null, isLoaded: true };
 	const { displayWeightToKg, displayWeeklyGoalToKg } = useUnitConversion();
 	const [formData, setFormData] = useState<UserProfile>({});
 	const [waterUnit] = useState<string>("oz");
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState("");
+
+	if (!clerkKey) {
+		return (
+			<div className="min-h-screen bg-gray-50 flex items-center justify-center">
+				<div className="text-center">
+					<h1 className="text-2xl font-bold text-gray-900 mb-4">
+						Authentication Disabled
+					</h1>
+					<p className="text-gray-600">
+						Please set NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY to enable
+						authentication.
+					</p>
+				</div>
+			</div>
+		);
+	}
 
 	// Pre-fill with Clerk user data and auto-detect timezone
 	useEffect(() => {
