@@ -185,6 +185,43 @@ npx prisma db seed
 
 **Note**: Seeding is non-destructive and idempotent - user data remains untouched.
 
+## CI/CD Pipeline
+
+The project includes automated CI/CD using GitHub Actions for building and deploying Docker images to Docker Hub.
+
+### Setup Requirements
+
+1. **Docker Hub Account**: Create an account at [Docker Hub](https://hub.docker.com)
+2. **Repository Secrets**: Add the following secrets to your GitHub repository:
+   - `DOCKERHUB_USERNAME`: Your Docker Hub username
+   - `DOCKERHUB_TOKEN`: Your Docker Hub access token (create one in Docker Hub settings)
+
+### Workflow Triggers
+
+The CI/CD pipeline automatically runs on:
+- **Push to main branch**: Builds and pushes a new image with branch and SHA tags
+- **Pull requests**: Builds image for testing (not pushed)
+- **Manual dispatch**: Allows manual triggering from GitHub Actions tab
+
+### Image Tags
+
+Images are tagged with:
+- `latest`: Latest build from main branch
+- `main`: Current main branch commit
+- `main-<short-sha>`: Specific commit SHA for traceability
+
+### Local Testing
+
+Test the Docker build locally before pushing:
+
+```bash
+# Build the image
+docker build -t archer-health:test .
+
+# Run the container
+docker run -d -p 3000:3000 --env-file .env archer-health:test
+```
+
 ## Development Setup
 
 For local development with full source code access:

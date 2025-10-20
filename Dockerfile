@@ -31,7 +31,13 @@ COPY data ./data
 # Set environment variables for build
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
-ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_YtheonepieceisrealllllllFjY291bnRzLmRldiQ
+
+# NOTE: Clerk publishable key should NOT be hardcoded at build time.
+# If your app requires Clerk during the build (for server-side rendering),
+# pass a build-arg in CI and take care not to bake it into the final image.
+# We keep an ARG here so CI can reference it if absolutely necessary, but
+# we do NOT set it as an ENV to avoid persisting it into image layers.
+ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 
 # Build the application
 RUN pnpm build
