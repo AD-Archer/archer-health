@@ -21,27 +21,9 @@ import { WeightGoal } from "./components/weight-goal";
 export default function GoalsPage() {
 	const router = useRouter();
 	const authEnabled = useAuthEnabled();
-	const { user, isLoaded } = authEnabled
-		? useUser()
-		: { user: null, isLoaded: authEnabled === null ? false : true };
+	const { user, isLoaded } = useUser();
 	const { updateUser, setGoals } = useStore();
 	const [isLoading, setIsLoading] = useState(true);
-
-	if (authEnabled === false) {
-		return (
-			<div className="min-h-screen bg-gray-50 flex items-center justify-center">
-				<div className="text-center">
-					<h1 className="text-2xl font-bold text-gray-900 mb-4">
-						Authentication Disabled
-					</h1>
-					<p className="text-gray-600">
-						Please set NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY to enable
-						authentication.
-					</p>
-				</div>
-			</div>
-		);
-	}
 
 	useEffect(() => {
 		if (isLoaded && user) {
@@ -75,9 +57,38 @@ export default function GoalsPage() {
 					setIsLoading(false);
 				});
 		} else if (isLoaded && !user) {
-			router.push("sign-in");
+			router.push("/sign-in");
 		}
 	}, [isLoaded, user, updateUser, setGoals, router]);
+
+	// Handle auth disabled case
+	if (authEnabled === false) {
+		return (
+			<div className="min-h-screen bg-gray-50 flex items-center justify-center">
+				<div className="text-center">
+					<h1 className="text-2xl font-bold text-gray-900 mb-4">
+						Authentication Disabled
+					</h1>
+					<p className="text-gray-600">
+						Please set NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY to enable
+						authentication.
+					</p>
+				</div>
+			</div>
+		);
+	}
+
+	// Handle loading state when auth is enabled but not loaded yet
+	if (!isLoaded) {
+		return (
+			<div className="min-h-screen bg-muted/30 flex items-center justify-center">
+				<div className="text-center">
+					<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+					<p className="text-muted-foreground">Loading...</p>
+				</div>
+			</div>
+		);
+	}
 
 	if (isLoading) {
 		return (

@@ -259,7 +259,15 @@ export async function PUT(request: NextRequest) {
 			}
 		}
 
-		return NextResponse.json({ user: updatedUser });
+		// Parse macro goals for response
+		const responseUser = {
+			...updatedUser,
+			macroGoals: updatedUser.macroGoals
+				? JSON.parse(updatedUser.macroGoals as string)
+				: null,
+		};
+
+		return NextResponse.json({ user: responseUser });
 	} catch (error) {
 		console.error("Error updating user profile:", error);
 		return NextResponse.json(

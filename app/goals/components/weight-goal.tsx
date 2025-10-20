@@ -1,7 +1,16 @@
 "use client";
 
-import { CheckCircle, Edit, Save, X } from "lucide-react";
+import {
+	BarChart3,
+	CheckCircle,
+	Edit,
+	Save,
+	Target,
+	X,
+	Zap,
+} from "lucide-react";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -59,9 +68,7 @@ export function WeightGoal() {
 		user?.dailyCalorieGoal || nutritionNeeds?.calories || 0;
 	const displayMacros = user?.macroGoals
 		? (user.macroGoals as { protein: number; carbs: number; fat: number })
-		: nutritionNeeds?.macros || { protein: 0, carbs: 0, fat: 0 };
-
-	// Handle loading state when user data is not available
+		: nutritionNeeds?.macros || { protein: 0, carbs: 0, fat: 0 }; // Handle loading state when user data is not available
 	if (!user) {
 		return (
 			<Card>
@@ -143,13 +150,13 @@ export function WeightGoal() {
 		const weeklyGoal = parseFloat(editForm.weeklyGoal);
 
 		if (Number.isNaN(currentWeight) || Number.isNaN(goalWeight)) {
-			alert("Please enter valid weight values");
+			toast.error("Please enter valid weight values");
 			return;
 		}
 
 		// Weekly goal is optional for maintain goals
 		if (editForm.goalType !== "maintain" && Number.isNaN(weeklyGoal)) {
-			alert("Please select a weekly goal");
+			toast.error("Please select a weekly goal");
 			return;
 		}
 
@@ -195,16 +202,17 @@ export function WeightGoal() {
 					goalType: data.user.goalType,
 				});
 				setIsEditing(false);
+				toast.success("Weight goal updated successfully!");
 			} else {
 				const errorData = await response.json().catch(() => ({}));
 				console.error("Failed to update profile:", errorData);
-				alert(
+				toast.error(
 					`Failed to update profile: ${errorData.error || "Unknown error"}`,
 				);
 			}
 		} catch (error) {
 			console.error("Error updating profile:", error);
-			alert("Network error. Please check your connection and try again.");
+			toast.error("Network error. Please check your connection and try again.");
 		} finally {
 			setIsUpdating(false);
 		}
@@ -241,16 +249,19 @@ export function WeightGoal() {
 					weeklyGoal: data.user.weeklyGoal,
 					goalType: data.user.goalType,
 				});
-				// Show success message
-				alert("🎉 Congratulations! Your weight goal has been completed!");
+				toast.success("Congratulations! Your weight goal has been completed!", {
+					description: "Great job! Your goal has been marked as complete.",
+				});
 			} else {
 				const errorData = await response.json().catch(() => ({}));
 				console.error("Failed to complete goal:", errorData);
-				alert(`Failed to complete goal: ${errorData.error || "Unknown error"}`);
+				toast.error(
+					`Failed to complete goal: ${errorData.error || "Unknown error"}`,
+				);
 			}
 		} catch (error) {
 			console.error("Error completing goal:", error);
-			alert("Network error. Please check your connection and try again.");
+			toast.error("Network error. Please check your connection and try again.");
 		} finally {
 			setIsUpdating(false);
 		}
@@ -281,6 +292,49 @@ export function WeightGoal() {
 		});
 	};
 
+	const handleSetAutomatically = async () => {
+		if (!nutritionNeeds) return;
+
+		setIsUpdating(true);
+		try {
+			const response = await fetch("/api/user-profile", {
+				method: "PUT",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					dailyCalorieGoal: nutritionNeeds.calories,
+					macroGoals: nutritionNeeds.macros,
+					name: user.name,
+					email: user.email,
+				}),
+			});
+
+			if (response.ok) {
+				const data = await response.json();
+				updateUser({
+					dailyCalorieGoal: data.user.dailyCalorieGoal,
+					macroGoals: data.user.macroGoals,
+				});
+				toast.success("Nutrition goals have been set automatically!", {
+					description:
+						"Your goals are now based on your calculated nutritional needs.",
+				});
+			} else {
+				const errorData = await response.json().catch(() => ({}));
+				console.error("Failed to set automatic nutrition goals:", errorData);
+				toast.error(
+					`Failed to set automatic goals: ${errorData.error || "Unknown error"}`,
+				);
+			}
+		} catch (error) {
+			console.error("Error setting automatic nutrition goals:", error);
+			toast.error("Network error. Please check your connection and try again.");
+		} finally {
+			setIsUpdating(false);
+		}
+	};
+
 	const handleSaveNutritionEdit = async () => {
 		const calories = parseInt(nutritionEditForm.calories);
 		const protein = parseInt(nutritionEditForm.protein);
@@ -288,19 +342,19 @@ export function WeightGoal() {
 		const fat = parseInt(nutritionEditForm.fat);
 
 		if (Number.isNaN(calories) || calories <= 0) {
-			alert("Please enter a valid calorie goal");
+			toast.error("Please enter a valid calorie goal");
 			return;
 		}
 		if (Number.isNaN(protein) || protein <= 0) {
-			alert("Please enter a valid protein goal");
+			toast.error("Please enter a valid protein goal");
 			return;
 		}
 		if (Number.isNaN(carbs) || carbs <= 0) {
-			alert("Please enter a valid carbs goal");
+			toast.error("Please enter a valid carbs goal");
 			return;
 		}
 		if (Number.isNaN(fat) || fat <= 0) {
-			alert("Please enter a valid fat goal");
+			toast.error("Please enter a valid fat goal");
 			return;
 		}
 
@@ -330,16 +384,17 @@ export function WeightGoal() {
 					macroGoals: data.user.macroGoals,
 				});
 				setIsEditingNutrition(false);
+				toast.success("Nutrition goals updated successfully!");
 			} else {
 				const errorData = await response.json().catch(() => ({}));
 				console.error("Failed to update nutrition goals:", errorData);
-				alert(
+				toast.error(
 					`Failed to update nutrition goals: ${errorData.error || "Unknown error"}`,
 				);
 			}
 		} catch (error) {
 			console.error("Error updating nutrition goals:", error);
-			alert("Network error. Please check your connection and try again.");
+			toast.error("Network error. Please check your connection and try again.");
 		} finally {
 			setIsUpdating(false);
 		}
@@ -353,7 +408,8 @@ export function WeightGoal() {
 					<div className="flex items-center justify-between">
 						<div>
 							<CardTitle className="text-2xl font-display flex items-center gap-2">
-								🎯 Main Goal:{" "}
+								<Target className="w-6 h-6" />
+								Main Goal:{" "}
 								{user.goalType === "lose"
 									? "Lose"
 									: user.goalType === "gain"
@@ -594,14 +650,25 @@ export function WeightGoal() {
 					<CardHeader>
 						<div className="flex items-center justify-between">
 							<div>
-								<CardTitle className="text-xl font-display">
-									📊 Your Nutrition Needs
+								<CardTitle className="text-xl font-display flex items-center gap-2">
+									<BarChart3 className="w-5 h-5" />
+									Your Nutrition Needs
 								</CardTitle>
 								<p className="text-muted-foreground">
 									Calculated based on your profile and goals
 								</p>
 							</div>
 							<div className="flex items-center gap-2">
+								<Button
+									variant="default"
+									size="sm"
+									onClick={handleSetAutomatically}
+									disabled={isUpdating}
+									className="flex items-center gap-2"
+								>
+									<Zap className="w-4 h-4" />
+									Set Automatically
+								</Button>
 								{!isEditingNutrition ? (
 									<Button
 										variant="outline"

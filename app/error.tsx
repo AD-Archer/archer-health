@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { useAuthEnabled } from "@/lib/use-auth-enabled";
 
 interface ErrorPageProps {
 	error: Error & { digest?: string };
@@ -18,8 +17,7 @@ interface ErrorPageProps {
 }
 
 export default function ErrorPage({ error, reset }: ErrorPageProps) {
-	const authEnabled = useAuthEnabled();
-	const { user } = authEnabled ? useUser() : { user: null };
+	const { user } = useUser();
 	const [includeContactInfo, setIncludeContactInfo] = useState(false);
 
 	const reportErrorToAdmin = useCallback(

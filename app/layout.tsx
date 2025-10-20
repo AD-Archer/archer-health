@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Poppins } from "next/font/google";
 import type React from "react";
+import { Toaster } from "sonner";
 import "./globals.css";
 import ClientClerkProvider from "../components/client-clerk-provider";
 
@@ -218,9 +219,8 @@ export default function RootLayout({
 					<meta name="apple-mobile-web-app-title" content="Archer Health" />
 				</head>
 				<body className="font-sans antialiased">
-					<ClientClerkProvider>
-						{children}
-					</ClientClerkProvider>
+					<ClientClerkProvider>{children}</ClientClerkProvider>
+					<Toaster />
 				</body>
 			</html>
 		);
