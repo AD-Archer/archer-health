@@ -10,7 +10,11 @@ export default function SignInCatchAllPage() {
 	return (
 		<div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
 			<div className="w-full max-w-md">
-				<SignIn path="/sign-in" routing="path" redirectUrl="/dashboard" />
+				<SignIn
+					path="/sign-in"
+					routing="path"
+					fallbackRedirectUrl="/dashboard"
+				/>
 			</div>
 		</div>
 	);

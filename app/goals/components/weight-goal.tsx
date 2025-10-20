@@ -293,7 +293,15 @@ export function WeightGoal() {
 	};
 
 	const handleSetAutomatically = async () => {
-		if (!nutritionNeeds) return;
+		if (!nutritionNeeds) {
+			console.log("No nutrition needs available", { user });
+			toast.error(
+				"Unable to calculate nutrition needs. Please ensure your profile is complete.",
+			);
+			return;
+		}
+
+		console.log("Setting automatic values:", nutritionNeeds);
 
 		// Populate the edit form with calculated values
 		setNutritionEditForm({
