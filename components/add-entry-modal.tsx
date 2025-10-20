@@ -669,7 +669,7 @@ function LogFoodTab({
 	);
 }
 
-function CreateFoodTab({ onClose }: { onClose: () => void }) {
+function CreateFoodTab(_: { onClose: () => void }) {
 	const [name, setName] = useState("");
 	const [calories, setCalories] = useState("");
 	const [protein, setProtein] = useState("");
@@ -712,7 +712,7 @@ function CreateFoodTab({ onClose }: { onClose: () => void }) {
 			if (response.ok) {
 				const newFood = await response.json();
 				addFood(newFood);
-				onClose();
+				toast.success("Food created successfully!");
 			} else {
 				const errorText = await response.text();
 				console.error("Error creating food:", {
@@ -879,7 +879,7 @@ function CreateFoodTab({ onClose }: { onClose: () => void }) {
 	);
 }
 
-function CreateMealTab({ onClose }: { onClose: () => void }) {
+function CreateMealTab(_: { onClose: () => void }) {
 	const [mealName, setMealName] = useState("");
 	const [searchQuery, setSearchQuery] = useState("");
 	const [selectedFoods, setSelectedFoods] = useState<
@@ -969,7 +969,7 @@ function CreateMealTab({ onClose }: { onClose: () => void }) {
 			if (response.ok) {
 				const newMeal = await response.json();
 				addMeal(newMeal);
-				onClose();
+				toast.success("Meal created successfully!");
 			} else {
 				const errorText = await response.text();
 				console.error("Error creating meal:", {
