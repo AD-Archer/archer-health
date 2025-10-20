@@ -116,6 +116,8 @@ export async function PUT(request: NextRequest) {
 			waterGoalUnit,
 			name,
 			email,
+			dailyCalorieGoal: incomingDailyCalorieGoal,
+			macroGoals: incomingMacroGoals,
 		} = body;
 
 		// Get current user to know their units preference for conversion
@@ -140,8 +142,8 @@ export async function PUT(request: NextRequest) {
 		};
 
 		// Calculate macro goals if we have the necessary data
-		let macroGoals = null;
-		let dailyCalorieGoal: number | undefined;
+		let calculatedMacroGoals = null;
+		let calculatedDailyCalorieGoal: number | undefined;
 		const weightKg = convertToKg(currentWeight);
 		const heightCm = height ? parseFloat(height.toString()) : undefined;
 		const ageNum = age ? parseInt(age.toString(), 10) : undefined;
@@ -154,7 +156,9 @@ export async function PUT(request: NextRequest) {
 			gender &&
 			activityLevel &&
 			goalType &&
-			weeklyGoalKg
+			weeklyGoalKg &&
+			!incomingMacroGoals &&
+			!incomingDailyCalorieGoal
 		) {
 			const userForCalculation = {
 				id: "",
@@ -181,9 +185,14 @@ export async function PUT(request: NextRequest) {
 				timezone: timezone || "America/New_York",
 			};
 			const nutritionNeeds = calculateNutritionNeeds(userForCalculation);
-			macroGoals = nutritionNeeds.macros;
-			dailyCalorieGoal = nutritionNeeds.calories;
+			calculatedMacroGoals = nutritionNeeds.macros;
+			calculatedDailyCalorieGoal = nutritionNeeds.calories;
 		}
+
+		// Use provided values or calculated values
+		const finalMacroGoals = incomingMacroGoals || calculatedMacroGoals;
+		const finalDailyCalorieGoal =
+			incomingDailyCalorieGoal || calculatedDailyCalorieGoal;
 
 		// Update or create user profile data
 		const updatedUser = await prisma.user.upsert({
@@ -204,8 +213,10 @@ export async function PUT(request: NextRequest) {
 				waterGoalUnit: waterGoalUnit || "oz",
 				name,
 				email,
-				macroGoals: macroGoals ? JSON.stringify(macroGoals) : undefined,
-				dailyCalorieGoal: dailyCalorieGoal,
+				macroGoals: finalMacroGoals
+					? JSON.stringify(finalMacroGoals)
+					: undefined,
+				dailyCalorieGoal: finalDailyCalorieGoal,
 			},
 			create: {
 				clerkId: userId,
@@ -224,8 +235,10 @@ export async function PUT(request: NextRequest) {
 				waterGoalUnit: waterGoalUnit || "oz",
 				name,
 				email,
-				macroGoals: macroGoals ? JSON.stringify(macroGoals) : undefined,
-				dailyCalorieGoal: dailyCalorieGoal,
+				macroGoals: finalMacroGoals
+					? JSON.stringify(finalMacroGoals)
+					: undefined,
+				dailyCalorieGoal: finalDailyCalorieGoal,
 			},
 		});
 

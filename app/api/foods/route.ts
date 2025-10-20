@@ -35,33 +35,25 @@ export async function POST(request: NextRequest) {
 		} = body;
 
 		// Validate required fields
-		if (
-			!name ||
-			!calories ||
-			!protein ||
-			!carbs ||
-			!fat ||
-			!servingSize ||
-			!servingUnit
-		) {
+		if (!calories || parseFloat(calories) <= 0) {
 			return NextResponse.json(
-				{ error: "Missing required fields" },
+				{ error: "Calories are required and must be greater than 0" },
 				{ status: 400 },
 			);
 		}
 
 		const food = await prisma.food.create({
 			data: {
-				name,
+				name: name || "Unnamed Food",
 				calories: parseFloat(calories),
-				protein: parseFloat(protein),
-				carbs: parseFloat(carbs),
-				fat: parseFloat(fat),
+				protein: protein ? parseFloat(protein) : 0,
+				carbs: carbs ? parseFloat(carbs) : 0,
+				fat: fat ? parseFloat(fat) : 0,
 				fiber: fiber ? parseFloat(fiber) : null,
 				sugar: sugar ? parseFloat(sugar) : null,
 				sodium: sodium ? parseFloat(sodium) : null,
-				servingSize,
-				servingUnit,
+				servingSize: servingSize || "1",
+				servingUnit: servingUnit || "g",
 				isPublic,
 				category,
 				createdBy: userId,
@@ -72,6 +64,99 @@ export async function POST(request: NextRequest) {
 		return NextResponse.json(food);
 	} catch (error) {
 		console.error("Error creating food:", error);
+		return NextResponse.json(
+			{ error: "Internal server error" },
+			{ status: 500 },
+		);
+	}
+}
+
+export async function PUT(request: NextRequest) {
+	try {
+		const { userId } = await auth();
+		if (!userId) {
+			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+		}
+
+		const user = await prisma.user.findUnique({
+			where: { clerkId: userId },
+		});
+
+		if (!user) {
+			return NextResponse.json({ error: "User not found" }, { status: 404 });
+		}
+
+		const body = await request.json();
+		const {
+			id,
+			name,
+			calories,
+			protein,
+			carbs,
+			fat,
+			fiber,
+			sugar,
+			sodium,
+			servingSize,
+			servingUnit,
+			isPublic = true,
+			category,
+		} = body;
+
+		// Validate required fields
+		if (!id) {
+			return NextResponse.json(
+				{ error: "Food ID is required" },
+				{ status: 400 },
+			);
+		}
+
+		if (!calories || parseFloat(calories) <= 0) {
+			return NextResponse.json(
+				{ error: "Calories are required and must be greater than 0" },
+				{ status: 400 },
+			);
+		}
+
+		// Verify the food exists and belongs to the user
+		const existingFood = await prisma.food.findFirst({
+			where: {
+				id,
+				userId: user.id,
+			},
+		});
+
+		if (!existingFood) {
+			return NextResponse.json(
+				{ error: "Food not found or access denied" },
+				{ status: 404 },
+			);
+		}
+
+		// Create a new food entry instead of updating the existing one
+		// This preserves existing meal entries that reference the old food
+		const newFood = await prisma.food.create({
+			data: {
+				name: name || "Unnamed Food",
+				calories: parseFloat(calories),
+				protein: protein ? parseFloat(protein) : 0,
+				carbs: carbs ? parseFloat(carbs) : 0,
+				fat: fat ? parseFloat(fat) : 0,
+				fiber: fiber ? parseFloat(fiber) : null,
+				sugar: sugar ? parseFloat(sugar) : null,
+				sodium: sodium ? parseFloat(sodium) : null,
+				servingSize: servingSize || "1",
+				servingUnit: servingUnit || "g",
+				isPublic,
+				category,
+				createdBy: userId,
+				userId: user.id,
+			},
+		});
+
+		return NextResponse.json(newFood);
+	} catch (error) {
+		console.error("Error updating food:", error);
 		return NextResponse.json(
 			{ error: "Internal server error" },
 			{ status: 500 },

@@ -2,6 +2,7 @@
 
 import {
 	CheckCircle,
+	Edit,
 	Flame,
 	Plus,
 	Search,
@@ -10,6 +11,7 @@ import {
 	Zap,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import type { Food, MealEntry } from "@/app/data/data";
 import { Button } from "@/components/ui/button";
 import {
@@ -138,153 +140,166 @@ export function AddEntryModal({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="max-w-2xl max-h-[90vh]">
-				<DialogHeader>
+			<DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+				<DialogHeader className="flex-shrink-0">
 					<DialogTitle>Add Entry</DialogTitle>
 				</DialogHeader>
 
-				<Tabs
-					value={activeTab}
-					onValueChange={(value) => setActiveTab(value as typeof activeTab)}
-				>
-					<TabsList className="grid w-full grid-cols-4">
-						<TabsTrigger value="log-food">Log Food</TabsTrigger>
-						<TabsTrigger value="quick-add">Quick Add</TabsTrigger>
-						<TabsTrigger value="create-food">Create Food</TabsTrigger>
-						<TabsTrigger value="create-meal">Create Meal</TabsTrigger>
-					</TabsList>
+				<div className="flex-1 overflow-y-auto pr-1">
+					<Tabs
+						value={activeTab}
+						onValueChange={(value) => setActiveTab(value as typeof activeTab)}
+					>
+						<TabsList className="grid w-full grid-cols-5 flex-shrink-0">
+							<TabsTrigger value="log-food">Log Food</TabsTrigger>
+							<TabsTrigger value="quick-add">Quick Add</TabsTrigger>
+							<TabsTrigger value="my-foods">My Foods</TabsTrigger>
+							<TabsTrigger value="create-food">Create Food</TabsTrigger>
+							<TabsTrigger value="create-meal">Create Meal</TabsTrigger>
+						</TabsList>
 
-					<TabsContent value="quick-add" className="space-y-4">
-						<div className="space-y-6">
-							{/* Nutrition Inputs */}
-							<div className="grid grid-cols-2 gap-4">
+						<TabsContent value="quick-add" className="space-y-4">
+							<div className="space-y-6">
+								{/* Nutrition Inputs */}
+								<div className="grid grid-cols-2 gap-4">
+									<div className="space-y-2">
+										<Label className="flex items-center gap-2 text-sm font-medium">
+											<Flame className="w-4 h-4 text-orange-500" />
+											Calories <span className="text-red-500">*</span>
+										</Label>
+										<Input
+											type="number"
+											value={quickCalories}
+											onChange={(e) => setQuickCalories(e.target.value)}
+											placeholder="0"
+										/>
+									</div>
+									<div className="space-y-2">
+										<Label className="flex items-center gap-2 text-sm font-medium">
+											<Users className="w-4 h-4 text-blue-500" />
+											Servings
+										</Label>
+										<Input
+											type="number"
+											min="0.01"
+											step="0.1"
+											value={quickServings}
+											onChange={(e) => setQuickServings(e.target.value)}
+											placeholder="1"
+										/>
+									</div>
+								</div>
+
+								{/* Macros */}
+								<div className="space-y-3">
+									<h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+										Macronutrients
+									</h4>
+									<div className="grid grid-cols-3 gap-3">
+										<div className="space-y-2">
+											<Label className="text-xs text-muted-foreground">
+												Protein (g)
+											</Label>
+											<Input
+												type="number"
+												value={quickProtein}
+												onChange={(e) => setQuickProtein(e.target.value)}
+												placeholder="0"
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label className="text-xs text-muted-foreground">
+												Carbs (g)
+											</Label>
+											<Input
+												type="number"
+												value={quickCarbs}
+												onChange={(e) => setQuickCarbs(e.target.value)}
+												placeholder="0"
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label className="text-xs text-muted-foreground">
+												Fat (g)
+											</Label>
+											<Input
+												type="number"
+												value={quickFat}
+												onChange={(e) => setQuickFat(e.target.value)}
+												placeholder="0"
+											/>
+										</div>
+									</div>
+								</div>
+
+								{/* Meal Type */}
 								<div className="space-y-2">
 									<Label className="flex items-center gap-2 text-sm font-medium">
-										<Flame className="w-4 h-4 text-orange-500" />
-										Calories
+										<Utensils className="w-4 h-4 text-green-500" />
+										Meal Type
 									</Label>
-									<Input
-										type="number"
-										value={quickCalories}
-										onChange={(e) => setQuickCalories(e.target.value)}
-										placeholder="0"
-									/>
+									<Select
+										value={quickMealType}
+										onValueChange={(v: string) =>
+											setQuickMealType(
+												v as "breakfast" | "lunch" | "dinner" | "snacks",
+											)
+										}
+									>
+										<SelectTrigger>
+											<SelectValue />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="breakfast">Breakfast</SelectItem>
+											<SelectItem value="lunch">Lunch</SelectItem>
+											<SelectItem value="dinner">Dinner</SelectItem>
+											<SelectItem value="snacks">Snacks</SelectItem>
+										</SelectContent>
+									</Select>
 								</div>
-								<div className="space-y-2">
-									<Label className="flex items-center gap-2 text-sm font-medium">
-										<Users className="w-4 h-4 text-blue-500" />
-										Servings
-									</Label>
-									<Input
-										type="number"
-										min="0.01"
-										step="0.1"
-										value={quickServings}
-										onChange={(e) => setQuickServings(e.target.value)}
-										placeholder="1"
-									/>
-								</div>
-							</div>
 
-							{/* Macros */}
-							<div className="space-y-3">
-								<h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-									Macronutrients
-								</h4>
-								<div className="grid grid-cols-3 gap-3">
-									<div className="space-y-2">
-										<Label className="text-xs text-muted-foreground">
-											Protein (g)
-										</Label>
-										<Input
-											type="number"
-											value={quickProtein}
-											onChange={(e) => setQuickProtein(e.target.value)}
-											placeholder="0"
-										/>
-									</div>
-									<div className="space-y-2">
-										<Label className="text-xs text-muted-foreground">
-											Carbs (g)
-										</Label>
-										<Input
-											type="number"
-											value={quickCarbs}
-											onChange={(e) => setQuickCarbs(e.target.value)}
-											placeholder="0"
-										/>
-									</div>
-									<div className="space-y-2">
-										<Label className="text-xs text-muted-foreground">
-											Fat (g)
-										</Label>
-										<Input
-											type="number"
-											value={quickFat}
-											onChange={(e) => setQuickFat(e.target.value)}
-											placeholder="0"
-										/>
-									</div>
-								</div>
-							</div>
-
-							{/* Meal Type */}
-							<div className="space-y-2">
-								<Label className="flex items-center gap-2 text-sm font-medium">
-									<Utensils className="w-4 h-4 text-green-500" />
-									Meal Type
-								</Label>
-								<Select
-									value={quickMealType}
-									onValueChange={(v: string) =>
-										setQuickMealType(
-											v as "breakfast" | "lunch" | "dinner" | "snacks",
-										)
-									}
+								{/* Action Button */}
+								<Button
+									onClick={handleQuickAdd}
+									className="w-full"
+									size="lg"
+									disabled={!quickCalories || Number(quickCalories) <= 0}
 								>
-									<SelectTrigger>
-										<SelectValue />
-									</SelectTrigger>
-									<SelectContent>
-										<SelectItem value="breakfast">Breakfast</SelectItem>
-										<SelectItem value="lunch">Lunch</SelectItem>
-										<SelectItem value="dinner">Dinner</SelectItem>
-										<SelectItem value="snacks">Snacks</SelectItem>
-									</SelectContent>
-								</Select>
+									<Zap className="w-4 h-4 mr-2" />
+									{isQuickAdding ? "Adding..." : "Quick Add Entry"}
+								</Button>
+								<p className="text-xs text-muted-foreground text-center">
+									<span className="text-red-500">*</span> Required fields
+								</p>
 							</div>
+						</TabsContent>
 
-							{/* Action Button */}
-							<Button
-								onClick={handleQuickAdd}
-								className="w-full"
-								size="lg"
-								disabled={!quickCalories || Number(quickCalories) <= 0}
-							>
-								<Zap className="w-4 h-4 mr-2" />
-								{isQuickAdding ? "Adding..." : "Quick Add Entry"}
-							</Button>
-						</div>
-					</TabsContent>
+						<TabsContent value="my-foods" className="space-y-4">
+							<MyFoodsTab
+								onClose={() => onOpenChange(false)}
+								selectedDate={selectedDate}
+							/>
+						</TabsContent>
 
-					<TabsContent value="log-food" className="space-y-4">
-						<LogFoodTab
-							onClose={() => onOpenChange(false)}
-							selectedDate={selectedDate}
-							initialSearchQuery={initialSearchQuery}
-							showMealDBWarning={showMealDBWarning}
-							recipeData={recipeData}
-						/>
-					</TabsContent>
+						<TabsContent value="log-food" className="space-y-4">
+							<LogFoodTab
+								onClose={() => onOpenChange(false)}
+								selectedDate={selectedDate}
+								initialSearchQuery={initialSearchQuery}
+								showMealDBWarning={showMealDBWarning}
+								recipeData={recipeData}
+							/>
+						</TabsContent>
 
-					<TabsContent value="create-food" className="space-y-4">
-						<CreateFoodTab onClose={() => onOpenChange(false)} />
-					</TabsContent>
+						<TabsContent value="create-food" className="space-y-4">
+							<CreateFoodTab onClose={() => onOpenChange(false)} />
+						</TabsContent>
 
-					<TabsContent value="create-meal" className="space-y-4">
-						<CreateMealTab onClose={() => onOpenChange(false)} />
-					</TabsContent>
-				</Tabs>
+						<TabsContent value="create-meal" className="space-y-4">
+							<CreateMealTab onClose={() => onOpenChange(false)} />
+						</TabsContent>
+					</Tabs>
+				</div>
 			</DialogContent>
 		</Dialog>
 	);
@@ -324,6 +339,48 @@ function LogFoodTab({
 	const [isLoadingRecent, setIsLoadingRecent] = useState(false);
 	const [isLogging, setIsLogging] = useState(false);
 	const addMealEntry = useStore((state) => state.addMealEntry);
+	const addFood = useStore((state) => state.addFood);
+
+	const handleSaveFood = async (food: Food) => {
+		try {
+			// For USDA foods, we need to save them to user's collection
+			if (food.source === "usda") {
+				const response = await fetch("/api/foods", {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({
+						name: food.name,
+						calories: food.calories,
+						protein: food.protein,
+						carbs: food.carbs,
+						fat: food.fat,
+						fiber: food.fiber,
+						sugar: food.sugar,
+						sodium: food.sodium,
+						servingSize: food.servingSize,
+						servingUnit: food.servingUnit,
+						isPublic: false, // User's private copy
+						category: food.category,
+					}),
+				});
+
+				if (response.ok) {
+					const savedFood = await response.json();
+					addFood(savedFood);
+					toast.success("Food saved to your collection!");
+				} else {
+					const errorText = await response.text();
+					console.error("Error saving food:", errorText);
+					alert(`Error saving food: ${errorText}`);
+				}
+			}
+		} catch (error) {
+			console.error("Error saving food:", error);
+			toast.error("Error saving food");
+		}
+	};
 
 	const loadRecentFoods = useCallback(async () => {
 		setIsLoadingRecent(true);
@@ -437,31 +494,47 @@ function LogFoodTab({
 						// Show search results
 						foods.length > 0 ? (
 							foods.map((food) => (
-								<button
+								<div
 									key={food.id}
-									onClick={() => setSelectedFood(food)}
-									className={`w-full text-left p-3 rounded-lg hover:bg-muted transition-colors ${
+									className={`p-3 rounded-lg hover:bg-muted transition-colors ${
 										selectedFood?.id === food.id
 											? "bg-primary/10 border border-primary"
 											: ""
 									}`}
 								>
-									<div className="flex items-center gap-2">
-										<div className="font-medium">{food.name}</div>
-										{food.isVerified && (
-											<CheckCircle className="w-4 h-4 text-green-600" />
-										)}
-									</div>
-									<div className="text-sm text-muted-foreground">
-										{food.calories} cal • P: {food.protein}g • C: {food.carbs}g
-										• F: {food.fat}g
+									<div className="flex items-center justify-between">
+										<button
+											onClick={() => setSelectedFood(food)}
+											className="flex-1 text-left"
+										>
+											<div className="flex items-center gap-2">
+												<div className="font-medium">{food.name}</div>
+												{food.isVerified && (
+													<CheckCircle className="w-4 h-4 text-green-600" />
+												)}
+											</div>
+											<div className="text-sm text-muted-foreground">
+												{food.calories} cal • P: {food.protein}g • C:{" "}
+												{food.carbs}g • F: {food.fat}g
+												{food.source === "usda" && (
+													<span className="ml-2 text-xs bg-green-100 text-green-800 px-1 py-0.5 rounded">
+														USDA
+													</span>
+												)}
+											</div>
+										</button>
 										{food.source === "usda" && (
-											<span className="ml-2 text-xs bg-green-100 text-green-800 px-1 py-0.5 rounded">
-												USDA
-											</span>
+											<Button
+												variant="ghost"
+												size="sm"
+												onClick={() => handleSaveFood(food)}
+												className="ml-2"
+											>
+												Save
+											</Button>
 										)}
 									</div>
-								</button>
+								</div>
 							))
 						) : (
 							<div className="text-center text-muted-foreground py-4">
@@ -612,8 +685,7 @@ function CreateFoodTab({ onClose }: { onClose: () => void }) {
 	const addFood = useStore((state) => state.addFood);
 
 	const handleCreateFood = async () => {
-		if (!name || !calories || !protein || !carbs || !fat || !servingSize)
-			return;
+		if (!calories || Number(calories) <= 0) return;
 
 		try {
 			const response = await fetch("/api/foods", {
@@ -622,18 +694,18 @@ function CreateFoodTab({ onClose }: { onClose: () => void }) {
 					"Content-Type": "application/json",
 				},
 				body: JSON.stringify({
-					name,
-					calories,
-					protein,
-					carbs,
-					fat,
-					fiber,
-					sugar,
-					sodium,
-					servingSize,
+					name: name || "Unnamed Food",
+					calories: Number(calories) || 0,
+					protein: Number(protein) || 0,
+					carbs: Number(carbs) || 0,
+					fat: Number(fat) || 0,
+					fiber: fiber ? Number(fiber) : undefined,
+					sugar: sugar ? Number(sugar) : undefined,
+					sodium: sodium ? Number(sodium) : undefined,
+					servingSize: servingSize || "1",
 					servingUnit,
 					isPublic,
-					category,
+					category: category || undefined,
 				}),
 			});
 
@@ -642,7 +714,13 @@ function CreateFoodTab({ onClose }: { onClose: () => void }) {
 				addFood(newFood);
 				onClose();
 			} else {
-				console.error("Error creating food");
+				const errorText = await response.text();
+				console.error("Error creating food:", {
+					status: response.status,
+					statusText: response.statusText,
+					body: errorText,
+				});
+				alert(`Error creating food: ${errorText}`);
 			}
 		} catch (error) {
 			console.error("Error creating food:", error);
@@ -692,7 +770,9 @@ function CreateFoodTab({ onClose }: { onClose: () => void }) {
 
 				<div className="grid grid-cols-2 gap-4">
 					<div className="space-y-2">
-						<Label>Calories</Label>
+						<Label>
+							Calories <span className="text-red-500">*</span>
+						</Label>
 						<Input
 							type="number"
 							placeholder="0"
@@ -791,6 +871,9 @@ function CreateFoodTab({ onClose }: { onClose: () => void }) {
 					<Plus className="w-4 h-4 mr-2" />
 					Create Food
 				</Button>
+				<p className="text-xs text-muted-foreground text-center">
+					<span className="text-red-500">*</span> Required fields
+				</p>
 			</div>
 		</ScrollArea>
 	);
@@ -860,7 +943,7 @@ function CreateMealTab({ onClose }: { onClose: () => void }) {
 	};
 
 	const handleCreateMeal = async () => {
-		if (!mealName || selectedFoods.length === 0) return;
+		if (selectedFoods.length === 0) return;
 
 		const totals = calculateTotals();
 		try {
@@ -870,7 +953,7 @@ function CreateMealTab({ onClose }: { onClose: () => void }) {
 					"Content-Type": "application/json",
 				},
 				body: JSON.stringify({
-					name: mealName,
+					name: mealName || "Custom Meal",
 					foods: selectedFoods.map((f) => ({
 						foodId: f.food.id,
 						servings: f.servings,
@@ -888,7 +971,13 @@ function CreateMealTab({ onClose }: { onClose: () => void }) {
 				addMeal(newMeal);
 				onClose();
 			} else {
-				console.error("Error creating meal");
+				const errorText = await response.text();
+				console.error("Error creating meal:", {
+					status: response.status,
+					statusText: response.statusText,
+					body: errorText,
+				});
+				alert(`Error creating meal: ${errorText}`);
 			}
 		} catch (error) {
 			console.error("Error creating meal:", error);
@@ -910,7 +999,9 @@ function CreateMealTab({ onClose }: { onClose: () => void }) {
 				</div>
 
 				<div className="space-y-2">
-					<Label>Add Foods</Label>
+					<Label>
+						Add Foods <span className="text-red-500">*</span>
+					</Label>
 					<div className="relative">
 						<Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
 						<Input
@@ -1048,7 +1139,488 @@ function CreateMealTab({ onClose }: { onClose: () => void }) {
 						</Button>
 					</div>
 				)}
+				<p className="text-xs text-muted-foreground text-center">
+					<span className="text-red-500">*</span> Required fields
+				</p>
 			</div>
 		</ScrollArea>
+	);
+}
+
+function MyFoodsTab({
+	onClose,
+	selectedDate,
+}: {
+	onClose: () => void;
+	selectedDate?: Date;
+}) {
+	const [selectedFood, setSelectedFood] = useState<Food | null>(null);
+	const [servings, setServings] = useState("1");
+	const [mealType, setMealType] = useState<
+		"breakfast" | "lunch" | "dinner" | "snacks"
+	>("breakfast");
+	const [isLogging, setIsLogging] = useState(false);
+	const [isLoading, setIsLoading] = useState(false);
+	const [editingFood, setEditingFood] = useState<Food | null>(null);
+	const [editName, setEditName] = useState("");
+	const [editCalories, setEditCalories] = useState("");
+	const [editProtein, setEditProtein] = useState("");
+	const [editCarbs, setEditCarbs] = useState("");
+	const [editFat, setEditFat] = useState("");
+	const [editFiber, setEditFiber] = useState("");
+	const [editSugar, setEditSugar] = useState("");
+	const [editSodium, setEditSodium] = useState("");
+	const [editServingSize, setEditServingSize] = useState("");
+	const [editServingUnit, setEditServingUnit] = useState("g");
+	const [editCategory, setEditCategory] = useState("");
+	const [editIsPublic, setEditIsPublic] = useState(true);
+	const [isEditing, setIsEditing] = useState(false);
+	const addMealEntry = useStore((state) => state.addMealEntry);
+	const { foods, setFoods } = useStore((state) => state);
+
+	const handleStartEdit = (food: Food) => {
+		setEditingFood(food);
+		setEditName(food.name);
+		setEditCalories(food.calories.toString());
+		setEditProtein(food.protein.toString());
+		setEditCarbs(food.carbs.toString());
+		setEditFat(food.fat.toString());
+		setEditFiber(food.fiber?.toString() || "");
+		setEditSugar(food.sugar?.toString() || "");
+		setEditSodium(food.sodium?.toString() || "");
+		setEditServingSize(food.servingSize);
+		setEditServingUnit(food.servingUnit);
+		setEditCategory(food.category || "");
+		setEditIsPublic(food.isPublic);
+	};
+
+	const handleEditFood = async () => {
+		if (!editingFood) return;
+
+		setIsEditing(true);
+		try {
+			const response = await fetch("/api/foods", {
+				method: "PUT",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					id: editingFood.id,
+					name: editName,
+					calories: editCalories,
+					protein: editProtein,
+					carbs: editCarbs,
+					fat: editFat,
+					fiber: editFiber ? editFiber : undefined,
+					sugar: editSugar ? editSugar : undefined,
+					sodium: editSodium ? editSodium : undefined,
+					servingSize: editServingSize,
+					servingUnit: editServingUnit,
+					isPublic: editIsPublic,
+					category: editCategory || undefined,
+				}),
+			});
+
+			if (response.ok) {
+				const updatedFood = await response.json();
+				// Replace the old food with the new one in the store
+				setFoods(foods.map((f) => (f.id === editingFood.id ? updatedFood : f)));
+				setEditingFood(null);
+				toast.success("Food updated successfully!");
+			} else {
+				const errorText = await response.text();
+				console.error("Error updating food:", errorText);
+				alert(`Error updating food: ${errorText}`);
+			}
+		} catch (error) {
+			console.error("Error updating food:", error);
+			toast.error("Error updating food");
+		} finally {
+			setIsEditing(false);
+		}
+	};
+
+	const handleCancelEdit = () => {
+		setEditingFood(null);
+	};
+
+	useEffect(() => {
+		const loadUserFoods = async () => {
+			setIsLoading(true);
+			try {
+				const response = await fetch("/api/foods?limit=100");
+				if (response.ok) {
+					const data: Food[] = await response.json();
+					setFoods(data);
+				}
+			} catch (error) {
+				console.error("Error loading user foods:", error);
+			} finally {
+				setIsLoading(false);
+			}
+		};
+
+		loadUserFoods();
+	}, [setFoods]);
+
+	const handleLogFood = async () => {
+		if (!selectedFood) return;
+
+		setIsLogging(true);
+		const servingAmount = Number.parseFloat(servings) || 1;
+		const entry: MealEntry = {
+			id: Date.now().toString(),
+			date: selectedDate
+				? selectedDate.toISOString().split("T")[0]
+				: new Date().toISOString().split("T")[0],
+			mealType,
+			foodId: selectedFood.id,
+			servings: servingAmount,
+			calories: selectedFood.calories * servingAmount,
+			protein: selectedFood.protein * servingAmount,
+			carbs: selectedFood.carbs * servingAmount,
+			fat: selectedFood.fat * servingAmount,
+		};
+
+		try {
+			const response = await fetch("/api/meal-entries", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify(entry),
+			});
+
+			if (response.ok) {
+				const createdEntry = await response.json();
+				addMealEntry(createdEntry);
+				onClose();
+			} else {
+				console.error("Error logging food");
+			}
+		} catch (error) {
+			console.error("Error logging food:", error);
+		} finally {
+			setIsLogging(false);
+		}
+	};
+
+	return (
+		<div className="space-y-4">
+			<div className="text-sm text-muted-foreground">
+				Select from your saved foods
+			</div>
+
+			<ScrollArea className="h-48 border rounded-lg">
+				<div className="p-2 space-y-1">
+					{isLoading ? (
+						<div className="text-center text-muted-foreground py-4">
+							Loading your foods...
+						</div>
+					) : foods.length > 0 ? (
+						foods.map((food) => (
+							<div
+								key={food.id}
+								className={`p-3 rounded-lg hover:bg-muted transition-colors ${
+									selectedFood?.id === food.id
+										? "bg-primary/10 border border-primary"
+										: ""
+								}`}
+							>
+								<div className="flex items-center justify-between">
+									<button
+										onClick={() => setSelectedFood(food)}
+										className="flex-1 text-left"
+									>
+										<div className="flex items-center gap-2">
+											<div className="font-medium">{food.name}</div>
+											{food.isVerified && (
+												<CheckCircle className="w-4 h-4 text-green-600" />
+											)}
+										</div>
+										<div className="text-sm text-muted-foreground">
+											{food.calories} cal • P: {food.protein}g • C: {food.carbs}
+											g • F: {food.fat}g
+											{food.source === "usda" && (
+												<span className="ml-2 text-xs bg-green-100 text-green-800 px-1 py-0.5 rounded">
+													USDA
+												</span>
+											)}
+										</div>
+									</button>
+									<Button
+										variant="ghost"
+										size="sm"
+										onClick={() => handleStartEdit(food)}
+										className="ml-2"
+										disabled={food.source !== "user"}
+									>
+										<Edit className="w-4 h-4" />
+									</Button>
+								</div>
+							</div>
+						))
+					) : (
+						<div className="text-center text-muted-foreground py-4">
+							No saved foods yet. Create some foods first!
+						</div>
+					)}
+				</div>
+			</ScrollArea>
+
+			{editingFood && (
+				<div className="space-y-4 p-4 border rounded-lg bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+					<div className="flex items-center justify-between">
+						<div className="flex items-center gap-2">
+							<Edit className="w-5 h-5 text-blue-600" />
+							<h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100">
+								Edit Food
+							</h3>
+						</div>
+						<Button variant="ghost" size="sm" onClick={handleCancelEdit}>
+							Cancel
+						</Button>
+					</div>
+
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<div className="space-y-2">
+							<Label>Food Name</Label>
+							<Input
+								placeholder="e.g., Homemade Protein Shake"
+								value={editName}
+								onChange={(e) => setEditName(e.target.value)}
+							/>
+						</div>
+
+						<div className="space-y-2">
+							<Label>Category</Label>
+							<Input
+								placeholder="e.g., Fruits, Vegetables"
+								value={editCategory}
+								onChange={(e) => setEditCategory(e.target.value)}
+							/>
+						</div>
+
+						<div className="space-y-2">
+							<Label>Serving Size</Label>
+							<Input
+								type="number"
+								placeholder="100"
+								value={editServingSize}
+								onChange={(e) => setEditServingSize(e.target.value)}
+							/>
+						</div>
+
+						<div className="space-y-2">
+							<Label>Unit</Label>
+							<Select
+								value={editServingUnit}
+								onValueChange={setEditServingUnit}
+							>
+								<SelectTrigger>
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="g">grams (g)</SelectItem>
+									<SelectItem value="oz">ounces (oz)</SelectItem>
+									<SelectItem value="ml">milliliters (ml)</SelectItem>
+									<SelectItem value="cup">cup</SelectItem>
+									<SelectItem value="tbsp">tablespoon</SelectItem>
+									<SelectItem value="tsp">teaspoon</SelectItem>
+									<SelectItem value="piece">piece</SelectItem>
+								</SelectContent>
+							</Select>
+						</div>
+					</div>
+
+					<div className="space-y-3">
+						<h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+							Nutrition Facts (per serving)
+						</h4>
+						<div className="grid grid-cols-2 gap-3">
+							<div className="space-y-2">
+								<Label className="flex items-center gap-2">
+									<Flame className="w-4 h-4 text-orange-500" />
+									Calories <span className="text-red-500">*</span>
+								</Label>
+								<Input
+									type="number"
+									placeholder="0"
+									value={editCalories}
+									onChange={(e) => setEditCalories(e.target.value)}
+								/>
+							</div>
+							<div className="space-y-2">
+								<Label>Protein (g)</Label>
+								<Input
+									type="number"
+									placeholder="0"
+									value={editProtein}
+									onChange={(e) => setEditProtein(e.target.value)}
+								/>
+							</div>
+							<div className="space-y-2">
+								<Label>Carbs (g)</Label>
+								<Input
+									type="number"
+									placeholder="0"
+									value={editCarbs}
+									onChange={(e) => setEditCarbs(e.target.value)}
+								/>
+							</div>
+							<div className="space-y-2">
+								<Label>Fat (g)</Label>
+								<Input
+									type="number"
+									placeholder="0"
+									value={editFat}
+									onChange={(e) => setEditFat(e.target.value)}
+								/>
+							</div>
+							<div className="space-y-2">
+								<Label>Fiber (g)</Label>
+								<Input
+									type="number"
+									placeholder="0"
+									value={editFiber}
+									onChange={(e) => setEditFiber(e.target.value)}
+								/>
+							</div>
+							<div className="space-y-2">
+								<Label>Sugar (g)</Label>
+								<Input
+									type="number"
+									placeholder="0"
+									value={editSugar}
+									onChange={(e) => setEditSugar(e.target.value)}
+								/>
+							</div>
+							<div className="space-y-2 col-span-2">
+								<Label>Sodium (mg)</Label>
+								<Input
+									type="number"
+									placeholder="0"
+									value={editSodium}
+									onChange={(e) => setEditSodium(e.target.value)}
+								/>
+							</div>
+						</div>
+					</div>
+
+					<div className="flex items-center justify-between p-3 border rounded-lg bg-background">
+						<div className="space-y-0.5">
+							<Label htmlFor="edit-food-public" className="text-sm font-medium">
+								Make this food public
+							</Label>
+							<p className="text-xs text-muted-foreground">
+								Allow other users to find and use this food
+							</p>
+						</div>
+						<Switch
+							id="edit-food-public"
+							checked={editIsPublic}
+							onCheckedChange={setEditIsPublic}
+						/>
+					</div>
+
+					<div className="flex gap-2">
+						<Button
+							onClick={handleEditFood}
+							className="flex-1"
+							disabled={isEditing}
+						>
+							<Edit className="w-4 h-4 mr-2" />
+							{isEditing ? "Updating..." : "Update Food"}
+						</Button>
+					</div>
+					<p className="text-xs text-muted-foreground text-center">
+						<span className="text-red-500">*</span> Required fields
+					</p>
+				</div>
+			)}
+
+			{selectedFood && (
+				<div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+					<div className="grid grid-cols-2 gap-4">
+						<div className="space-y-2">
+							<Label>Meal Type</Label>
+							<Select
+								value={mealType}
+								onValueChange={(
+									value: "breakfast" | "lunch" | "dinner" | "snacks",
+								) => setMealType(value)}
+							>
+								<SelectTrigger>
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="breakfast">Breakfast</SelectItem>
+									<SelectItem value="lunch">Lunch</SelectItem>
+									<SelectItem value="dinner">Dinner</SelectItem>
+									<SelectItem value="snacks">Snacks</SelectItem>
+								</SelectContent>
+							</Select>
+						</div>
+
+						<div className="space-y-2">
+							<Label>Servings</Label>
+							<Input
+								type="number"
+								step="0.1"
+								min="0.1"
+								value={servings}
+								onChange={(e) => setServings(e.target.value)}
+							/>
+						</div>
+					</div>
+
+					<div className="grid grid-cols-4 gap-2 text-sm">
+						<div className="text-center p-2 bg-background rounded">
+							<div className="font-semibold">
+								{Math.round(
+									selectedFood.calories * Number.parseFloat(servings || "1"),
+								)}
+							</div>
+							<div className="text-muted-foreground text-xs">Calories</div>
+						</div>
+						<div className="text-center p-2 bg-background rounded">
+							<div className="font-semibold">
+								{Math.round(
+									selectedFood.protein * Number.parseFloat(servings || "1"),
+								)}
+								g
+							</div>
+							<div className="text-muted-foreground text-xs">Protein</div>
+						</div>
+						<div className="text-center p-2 bg-background rounded">
+							<div className="font-semibold">
+								{Math.round(
+									selectedFood.carbs * Number.parseFloat(servings || "1"),
+								)}
+								g
+							</div>
+							<div className="text-muted-foreground text-xs">Carbs</div>
+						</div>
+						<div className="text-center p-2 bg-background rounded">
+							<div className="font-semibold">
+								{Math.round(
+									selectedFood.fat * Number.parseFloat(servings || "1"),
+								)}
+								g
+							</div>
+							<div className="text-muted-foreground text-xs">Fat</div>
+						</div>
+					</div>
+
+					<Button
+						onClick={handleLogFood}
+						className="w-full"
+						disabled={isLogging}
+					>
+						{isLogging ? "Logging Food..." : "Log Food"}
+					</Button>
+				</div>
+			)}
+		</div>
 	);
 }

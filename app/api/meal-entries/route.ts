@@ -40,11 +40,11 @@ export async function POST(request: NextRequest) {
 		}
 
 		// Allow meal entries without foodId/mealId if nutrition values are provided directly (for Quick Add)
-		if (!foodId && !mealId && (!calories || !protein || !carbs || !fat)) {
+		if (!foodId && !mealId && !calories) {
 			return NextResponse.json(
 				{
 					error:
-						"Either foodId/mealId must be provided, or all nutrition values (calories, protein, carbs, fat) must be provided for Quick Add",
+						"Either foodId/mealId must be provided, or calories must be provided for Quick Add",
 				},
 				{ status: 400 },
 			);
@@ -155,9 +155,9 @@ export async function POST(request: NextRequest) {
 				mealId,
 				servings: parseFloat(servings),
 				calories: parseFloat(calories),
-				protein: parseFloat(protein),
-				carbs: parseFloat(carbs),
-				fat: parseFloat(fat),
+				protein: protein ? parseFloat(protein) : 0,
+				carbs: carbs ? parseFloat(carbs) : 0,
+				fat: fat ? parseFloat(fat) : 0,
 				notes,
 				userId: user.id,
 			},

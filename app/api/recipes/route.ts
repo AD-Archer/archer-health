@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { type NextRequest, NextResponse } from "next/server";
-import type { Prisma } from "@/lib/generated/prisma";
+import type { Prisma, Recipe } from "@/lib/generated/prisma";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(request: NextRequest) {
@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
 			}
 		}
 
-		let recipes: Prisma.Recipe[];
+		let recipes: Recipe[];
 
 		if (savedOnly) {
 			// Get current user internal id

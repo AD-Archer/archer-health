@@ -38,6 +38,14 @@ export function WeightGoal() {
 	});
 	const [isUpdating, setIsUpdating] = useState(false);
 
+	const [isEditingNutrition, setIsEditingNutrition] = useState(false);
+	const [nutritionEditForm, setNutritionEditForm] = useState({
+		calories: "",
+		protein: "",
+		carbs: "",
+		fat: "",
+	});
+
 	// Calculate nutrition needs - moved to top to avoid hook order issues
 	const nutritionNeeds = useMemo(() => {
 		if (user?.currentWeight && user?.height && user?.age && user?.gender) {
@@ -45,6 +53,13 @@ export function WeightGoal() {
 		}
 		return null;
 	}, [user]);
+
+	// Get display values for nutrition goals
+	const displayCalories =
+		user?.dailyCalorieGoal || nutritionNeeds?.calories || 0;
+	const displayMacros = user?.macroGoals
+		? (user.macroGoals as { protein: number; carbs: number; fat: number })
+		: nutritionNeeds?.macros || { protein: 0, carbs: 0, fat: 0 };
 
 	// Handle loading state when user data is not available
 	if (!user) {
@@ -235,6 +250,95 @@ export function WeightGoal() {
 			}
 		} catch (error) {
 			console.error("Error completing goal:", error);
+			alert("Network error. Please check your connection and try again.");
+		} finally {
+			setIsUpdating(false);
+		}
+	};
+
+	const handleEditNutritionClick = () => {
+		const userMacroGoals = user.macroGoals as {
+			protein?: number;
+			carbs?: number;
+			fat?: number;
+		} | null;
+		setNutritionEditForm({
+			calories: user.dailyCalorieGoal?.toString() || "",
+			protein: userMacroGoals?.protein?.toString() || "",
+			carbs: userMacroGoals?.carbs?.toString() || "",
+			fat: userMacroGoals?.fat?.toString() || "",
+		});
+		setIsEditingNutrition(true);
+	};
+
+	const handleCancelNutritionEdit = () => {
+		setIsEditingNutrition(false);
+		setNutritionEditForm({
+			calories: "",
+			protein: "",
+			carbs: "",
+			fat: "",
+		});
+	};
+
+	const handleSaveNutritionEdit = async () => {
+		const calories = parseInt(nutritionEditForm.calories);
+		const protein = parseInt(nutritionEditForm.protein);
+		const carbs = parseInt(nutritionEditForm.carbs);
+		const fat = parseInt(nutritionEditForm.fat);
+
+		if (Number.isNaN(calories) || calories <= 0) {
+			alert("Please enter a valid calorie goal");
+			return;
+		}
+		if (Number.isNaN(protein) || protein <= 0) {
+			alert("Please enter a valid protein goal");
+			return;
+		}
+		if (Number.isNaN(carbs) || carbs <= 0) {
+			alert("Please enter a valid carbs goal");
+			return;
+		}
+		if (Number.isNaN(fat) || fat <= 0) {
+			alert("Please enter a valid fat goal");
+			return;
+		}
+
+		setIsUpdating(true);
+		try {
+			const response = await fetch("/api/user-profile", {
+				method: "PUT",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					dailyCalorieGoal: calories,
+					macroGoals: {
+						protein,
+						carbs,
+						fat,
+					},
+					name: user.name,
+					email: user.email,
+				}),
+			});
+
+			if (response.ok) {
+				const data = await response.json();
+				updateUser({
+					dailyCalorieGoal: data.user.dailyCalorieGoal,
+					macroGoals: data.user.macroGoals,
+				});
+				setIsEditingNutrition(false);
+			} else {
+				const errorData = await response.json().catch(() => ({}));
+				console.error("Failed to update nutrition goals:", errorData);
+				alert(
+					`Failed to update nutrition goals: ${errorData.error || "Unknown error"}`,
+				);
+			}
+		} catch (error) {
+			console.error("Error updating nutrition goals:", error);
 			alert("Network error. Please check your connection and try again.");
 		} finally {
 			setIsUpdating(false);
@@ -488,18 +592,55 @@ export function WeightGoal() {
 			{nutritionNeeds && (
 				<Card>
 					<CardHeader>
-						<CardTitle className="text-xl font-display">
-							📊 Your Nutrition Needs
-						</CardTitle>
-						<p className="text-muted-foreground">
-							Calculated based on your profile and goals
-						</p>
+						<div className="flex items-center justify-between">
+							<div>
+								<CardTitle className="text-xl font-display">
+									📊 Your Nutrition Needs
+								</CardTitle>
+								<p className="text-muted-foreground">
+									Calculated based on your profile and goals
+								</p>
+							</div>
+							<div className="flex items-center gap-2">
+								{!isEditingNutrition ? (
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={handleEditNutritionClick}
+										className="flex items-center gap-2"
+									>
+										<Edit className="w-4 h-4" />
+										Edit Goals
+									</Button>
+								) : (
+									<div className="flex items-center gap-2">
+										<Button
+											variant="outline"
+											size="sm"
+											onClick={handleCancelNutritionEdit}
+											disabled={isUpdating}
+										>
+											<X className="w-4 h-4" />
+										</Button>
+										<Button
+											size="sm"
+											onClick={handleSaveNutritionEdit}
+											disabled={isUpdating}
+											className="flex items-center gap-2"
+										>
+											<Save className="w-4 h-4" />
+											{isUpdating ? "Saving..." : "Save"}
+										</Button>
+									</div>
+								)}
+							</div>
+						</div>
 					</CardHeader>
 					<CardContent className="space-y-6">
 						<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 							<div className="text-center p-4 rounded-lg bg-blue-50 dark:bg-blue-950/20">
 								<div className="text-3xl font-bold text-blue-600">
-									{nutritionNeeds.calories}
+									{displayCalories}
 								</div>
 								<div className="text-sm text-muted-foreground">
 									Calories/Day
@@ -507,23 +648,91 @@ export function WeightGoal() {
 							</div>
 							<div className="text-center p-4 rounded-lg bg-green-50 dark:bg-green-950/20">
 								<div className="text-3xl font-bold text-green-600">
-									{nutritionNeeds.macros.protein}g
+									{displayMacros.protein}g
 								</div>
 								<div className="text-sm text-muted-foreground">Protein</div>
 							</div>
 							<div className="text-center p-4 rounded-lg bg-orange-50 dark:bg-orange-950/20">
 								<div className="text-3xl font-bold text-orange-600">
-									{nutritionNeeds.macros.carbs}g
+									{displayMacros.carbs}g
 								</div>
 								<div className="text-sm text-muted-foreground">Carbs</div>
 							</div>
 							<div className="text-center p-4 rounded-lg bg-purple-50 dark:bg-purple-950/20 md:col-start-2">
 								<div className="text-3xl font-bold text-purple-600">
-									{nutritionNeeds.macros.fat}g
+									{displayMacros.fat}g
 								</div>
 								<div className="text-sm text-muted-foreground">Fat</div>
 							</div>
 						</div>
+
+						{/* Edit Form */}
+						{isEditingNutrition && (
+							<div className="space-y-4 p-4 rounded-lg bg-muted/30 border">
+								<div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+									<div className="space-y-2">
+										<Label htmlFor="edit-calories">Calories</Label>
+										<Input
+											id="edit-calories"
+											type="number"
+											value={nutritionEditForm.calories}
+											onChange={(e) =>
+												setNutritionEditForm((prev) => ({
+													...prev,
+													calories: e.target.value,
+												}))
+											}
+											placeholder="Daily calories"
+										/>
+									</div>
+									<div className="space-y-2">
+										<Label htmlFor="edit-protein">Protein (g)</Label>
+										<Input
+											id="edit-protein"
+											type="number"
+											value={nutritionEditForm.protein}
+											onChange={(e) =>
+												setNutritionEditForm((prev) => ({
+													...prev,
+													protein: e.target.value,
+												}))
+											}
+											placeholder="Protein in grams"
+										/>
+									</div>
+									<div className="space-y-2">
+										<Label htmlFor="edit-carbs">Carbs (g)</Label>
+										<Input
+											id="edit-carbs"
+											type="number"
+											value={nutritionEditForm.carbs}
+											onChange={(e) =>
+												setNutritionEditForm((prev) => ({
+													...prev,
+													carbs: e.target.value,
+												}))
+											}
+											placeholder="Carbs in grams"
+										/>
+									</div>
+									<div className="space-y-2">
+										<Label htmlFor="edit-fat">Fat (g)</Label>
+										<Input
+											id="edit-fat"
+											type="number"
+											value={nutritionEditForm.fat}
+											onChange={(e) =>
+												setNutritionEditForm((prev) => ({
+													...prev,
+													fat: e.target.value,
+												}))
+											}
+											placeholder="Fat in grams"
+										/>
+									</div>
+								</div>
+							</div>
+						)}
 
 						<div className="space-y-2">
 							<h4 className="font-semibold">Key Micronutrients</h4>

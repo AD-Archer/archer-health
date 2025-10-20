@@ -30,16 +30,16 @@ export async function POST(request: NextRequest) {
 		} = body;
 
 		// Validate required fields
-		if (!name || !foods || !Array.isArray(foods) || foods.length === 0) {
+		if (!foods || !Array.isArray(foods) || foods.length === 0) {
 			return NextResponse.json(
-				{ error: "Missing required fields" },
+				{ error: "At least one food is required" },
 				{ status: 400 },
 			);
 		}
 
 		const meal = await prisma.meal.create({
 			data: {
-				name,
+				name: name || "Custom Meal",
 				foods,
 				totalCalories: parseFloat(totalCalories),
 				totalProtein: parseFloat(totalProtein),
