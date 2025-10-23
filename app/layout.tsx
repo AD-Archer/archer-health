@@ -219,7 +219,9 @@ export default function RootLayout({
 					<meta name="apple-mobile-web-app-title" content="Archer Health" />
 				</head>
 				<body className="font-sans antialiased">
-					<ClientClerkProvider>{children}</ClientClerkProvider>
+					<ClientClerkProvider publishableKey={clerkKey}>
+						{children}
+					</ClientClerkProvider>
 					<Toaster />
 				</body>
 			</html>

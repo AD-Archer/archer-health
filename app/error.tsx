@@ -1,8 +1,6 @@
 "use client";
 
 // This is a client-side error boundary component; do not export runtime/dynamic here.
-
-import { useUser } from "@clerk/nextjs";
 import { AlertTriangle, Home, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
@@ -17,22 +15,13 @@ interface ErrorPageProps {
 }
 
 export default function ErrorPage({ error, reset }: ErrorPageProps) {
-	const { user } = useUser();
 	const [includeContactInfo, setIncludeContactInfo] = useState(false);
 
 	const reportErrorToAdmin = useCallback(
 		async (error: Error, includeContact: boolean) => {
 			try {
-				const userInfo =
-					includeContact && user
-						? `
-User Information:
------------------
-Name: ${user.fullName || user.firstName || "Anonymous"}
-${user.primaryEmailAddress?.emailAddress ? `Email: ${user.primaryEmailAddress.emailAddress}` : ""}
-`.trim()
-						: "";
-
+				// For safety, don't rely on Clerk hooks or user context inside the error
+				// boundary. We only send environment and error details.
 				const errorReport = {
 					subject: "Archer Health - Application Error Report",
 					message: `
@@ -43,7 +32,7 @@ Environment: Production
 User Agent: ${typeof window !== "undefined" ? window.navigator.userAgent : "N/A"}
 URL: ${typeof window !== "undefined" ? window.location.href : "N/A"}
 
-${userInfo}
+${includeContact ? "User opted to include contact information (handled client-side)" : ""}
 Error Details:
 --------------
 Name: ${error.name}
@@ -53,7 +42,7 @@ Stack: ${error.stack}
 Error Digest: ${(error as { digest?: string }).digest || "N/A"}
 
 Please investigate this error immediately.
-        `,
+		`,
 					name: "Archer Health Error Reporter",
 					email: "system@archerhealth.com",
 				};
@@ -69,7 +58,7 @@ Please investigate this error immediately.
 				console.error("Failed to report error to admin:", reportError);
 			}
 		},
-		[user],
+		[],
 	);
 
 	useEffect(() => {
@@ -99,21 +88,18 @@ Please investigate this error immediately.
 						is working to fix this issue.
 					</p>
 
-					{user && (
-						<div className="flex items-center space-x-2 p-3 bg-muted/50 rounded-lg">
-							<Checkbox
-								id="includeContact"
-								checked={includeContactInfo}
-								onCheckedChange={(checked) =>
-									setIncludeContactInfo(checked as boolean)
-								}
-							/>
-							<Label htmlFor="includeContact" className="text-sm">
-								Include my contact information (name and email) in the error
-								report
-							</Label>
-						</div>
-					)}
+					<div className="flex items-center space-x-2 p-3 bg-muted/50 rounded-lg">
+						<Checkbox
+							id="includeContact"
+							checked={includeContactInfo}
+							onCheckedChange={(checked) =>
+								setIncludeContactInfo(checked as boolean)
+							}
+						/>
+						<Label htmlFor="includeContact" className="text-sm">
+							Include my contact information in the error report
+						</Label>
+					</div>
 
 					{process.env.NODE_ENV === "development" && (
 						<div className="bg-muted p-3 rounded-lg text-left">
