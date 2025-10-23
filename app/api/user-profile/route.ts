@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { type NextRequest, NextResponse } from "next/server";
+import { ensureUser } from "../../../lib/ensure-user";
 import { calculateNutritionNeeds } from "../../../lib/nutrition-calculator";
 import { prisma } from "../../../lib/prisma";
 
@@ -10,13 +11,15 @@ export async function GET(_request: NextRequest) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 
-		// Get user data from database
-		const user = await prisma.user.findUnique({
-			where: { clerkId: userId },
-		});
-
-		if (!user) {
-			return NextResponse.json({ error: "User not found" }, { status: 404 });
+		let user;
+		try {
+			user = await ensureUser(userId);
+		} catch (creationError) {
+			console.error("Error ensuring user exists:", creationError);
+			return NextResponse.json(
+				{ error: "Failed to create user record" },
+				{ status: 500 },
+			);
 		}
 
 		// Check if macro goals need to be calculated
@@ -122,10 +125,16 @@ export async function PUT(request: NextRequest) {
 			macroGoals: incomingMacroGoals,
 		} = body;
 
-		// Get current user to know their units preference for conversion
-		const currentUser = await prisma.user.findUnique({
-			where: { clerkId: userId },
-		});
+		let currentUser;
+		try {
+			currentUser = await ensureUser(userId);
+		} catch (creationError) {
+			console.error("Error ensuring user exists:", creationError);
+			return NextResponse.json(
+				{ error: "Failed to create user record" },
+				{ status: 500 },
+			);
+		}
 
 		const userUnits = units || currentUser?.units || "imperial";
 

@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { type NextRequest, NextResponse } from "next/server";
 import type { Prisma, Recipe } from "@/lib/generated/prisma";
+import { ensureUser } from "@/lib/ensure-user";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(request: NextRequest) {
@@ -78,10 +79,15 @@ export async function GET(request: NextRequest) {
 		let recipes: Recipe[];
 
 		if (savedOnly) {
-			// Get current user internal id
-			const user = await prisma.user.findUnique({ where: { clerkId: userId } });
-			if (!user) {
-				return NextResponse.json([], { status: 200 });
+			let user;
+			try {
+				user = await ensureUser(userId);
+			} catch (creationError) {
+				console.error("Error ensuring user exists:", creationError);
+				return NextResponse.json(
+					{ error: "Failed to create user record" },
+					{ status: 500 },
+				);
 			}
 			recipes = await prisma.recipe.findMany({
 				where: {

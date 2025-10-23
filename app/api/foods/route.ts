@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { type NextRequest, NextResponse } from "next/server";
 import type { Food } from "../../../app/data/data";
+import { ensureUser } from "../../../lib/ensure-user";
 import { prisma } from "../../../lib/prisma";
 
 export async function POST(request: NextRequest) {
@@ -10,12 +11,15 @@ export async function POST(request: NextRequest) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 
-		const user = await prisma.user.findUnique({
-			where: { clerkId: userId },
-		});
-
-		if (!user) {
-			return NextResponse.json({ error: "User not found" }, { status: 404 });
+		let user;
+		try {
+			user = await ensureUser(userId);
+		} catch (creationError) {
+			console.error("Error ensuring user exists:", creationError);
+			return NextResponse.json(
+				{ error: "Failed to create user record" },
+				{ status: 500 },
+			);
 		}
 
 		const body = await request.json();
@@ -78,12 +82,15 @@ export async function PUT(request: NextRequest) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 
-		const user = await prisma.user.findUnique({
-			where: { clerkId: userId },
-		});
-
-		if (!user) {
-			return NextResponse.json({ error: "User not found" }, { status: 404 });
+		let user;
+		try {
+			user = await ensureUser(userId);
+		} catch (creationError) {
+			console.error("Error ensuring user exists:", creationError);
+			return NextResponse.json(
+				{ error: "Failed to create user record" },
+				{ status: 500 },
+			);
 		}
 
 		const body = await request.json();
@@ -171,12 +178,15 @@ export async function GET(request: NextRequest) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 
-		const user = await prisma.user.findUnique({
-			where: { clerkId: userId },
-		});
-
-		if (!user) {
-			return NextResponse.json({ error: "User not found" }, { status: 404 });
+		let user;
+		try {
+			user = await ensureUser(userId);
+		} catch (creationError) {
+			console.error("Error ensuring user exists:", creationError);
+			return NextResponse.json(
+				{ error: "Failed to create user record" },
+				{ status: 500 },
+			);
 		}
 
 		const { searchParams } = new URL(request.url);

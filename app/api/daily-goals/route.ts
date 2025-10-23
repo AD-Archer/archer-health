@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { type NextRequest, NextResponse } from "next/server";
 import type { DailyGoal } from "../../../lib/generated/prisma";
+import { ensureUser } from "../../../lib/ensure-user";
 import { prisma } from "../../../lib/prisma";
 
 export async function GET(request: NextRequest) {
@@ -16,12 +17,17 @@ export async function GET(request: NextRequest) {
 
 		let user = null;
 
-		if (userId) {
-			// Use Clerk user ID
-			user = await prisma.user.findUnique({
-				where: { clerkId: userId },
-			});
-		} else {
+	if (userId) {
+		try {
+			user = await ensureUser(userId);
+		} catch (creationError) {
+			console.error("Error ensuring user exists:", creationError);
+			return NextResponse.json(
+				{ error: "Failed to create user record" },
+				{ status: 500 },
+			);
+		}
+	} else {
 			// Try connection code authentication
 			const authHeader = request.headers.get("authorization");
 			if (!authHeader || !authHeader.startsWith("Bearer ")) {

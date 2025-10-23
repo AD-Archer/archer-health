@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { type NextRequest, NextResponse } from "next/server";
+import { ensureUser } from "../../../lib/ensure-user";
 import { prisma } from "../../../lib/prisma";
 
 export async function GET(_request: NextRequest) {
@@ -8,8 +9,18 @@ export async function GET(_request: NextRequest) {
 		if (!userId) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
+		let user;
+		try {
+			user = await ensureUser(userId);
+		} catch (creationError) {
+			console.error("Error ensuring user exists:", creationError);
+			return NextResponse.json(
+				{ error: "Failed to create user record" },
+				{ status: 500 },
+			);
+		}
 		const settings = await prisma.privacySettings.findUnique({
-			where: { userId },
+			where: { userId: user.id },
 		});
 		return NextResponse.json({ settings });
 	} catch (error) {
@@ -27,12 +38,15 @@ export async function PUT(request: NextRequest) {
 		if (!userId) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
-		// Ensure User record exists for Clerk user
-		let user = await prisma.user.findUnique({ where: { clerkId: userId } });
-		if (!user) {
-			user = await prisma.user.create({
-				data: { clerkId: userId, email: "", name: "", username: "" },
-			});
+		let user;
+		try {
+			user = await ensureUser(userId);
+		} catch (creationError) {
+			console.error("Error ensuring user exists:", creationError);
+			return NextResponse.json(
+				{ error: "Failed to create user record" },
+				{ status: 500 },
+			);
 		}
 		const body = await request.json();
 		const { profileVisibility, activitySharing, dataCollection } = body;

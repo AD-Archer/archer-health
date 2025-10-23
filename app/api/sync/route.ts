@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { type NextRequest, NextResponse } from "next/server";
+import { ensureUser } from "../../../lib/ensure-user";
 import { prisma } from "../../../lib/prisma";
 
 interface HydrationLogResponse {
@@ -27,15 +28,16 @@ export async function POST(_request: NextRequest) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 
-		// Get the user's connection info
-		const user = await prisma.user.findUnique({
-			where: { clerkId: userId },
-			select: {
-				id: true,
-				archerAquaConnectionCode: true,
-				archerAquaUserId: true,
-			},
-		});
+		let user;
+		try {
+			user = await ensureUser(userId);
+		} catch (creationError) {
+			console.error("Error ensuring user exists:", creationError);
+			return NextResponse.json(
+				{ error: "Failed to create user record" },
+				{ status: 500 },
+			);
+		}
 
 		if (!user?.archerAquaConnectionCode || !user?.archerAquaUserId) {
 			return NextResponse.json(

@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { type NextRequest, NextResponse } from "next/server";
+import { ensureUser } from "../../../lib/ensure-user";
 import { prisma } from "../../../lib/prisma";
 
 export async function GET(request: NextRequest) {
@@ -9,41 +10,15 @@ export async function GET(request: NextRequest) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 
-		// Find or create user
-		let user = await prisma.user.findUnique({
-			where: { clerkId: userId },
-		});
-
-		if (!user) {
-			// Create basic user record if it doesn't exist
-			try {
-				const clerkUser = await fetch(
-					`https://api.clerk.com/v1/users/${userId}`,
-					{
-						headers: {
-							Authorization: `Bearer ${process.env.CLERK_SECRET_KEY}`,
-						},
-					},
-				).then((res) => res.json());
-
-				user = await prisma.user.create({
-					data: {
-						clerkId: userId,
-						name:
-							`${clerkUser.first_name || ""} ${clerkUser.last_name || ""}`.trim() ||
-							"User",
-						email: clerkUser.email_addresses?.[0]?.email_address || null,
-						avatar: clerkUser.image_url || null,
-						username: clerkUser.username || null,
-					},
-				});
-			} catch (clerkError) {
-				console.error("Error fetching user from Clerk:", clerkError);
-				return NextResponse.json(
-					{ error: "Failed to create user record" },
-					{ status: 500 },
-				);
-			}
+		let user;
+		try {
+			user = await ensureUser(userId);
+		} catch (creationError) {
+			console.error("Error ensuring user exists:", creationError);
+			return NextResponse.json(
+				{ error: "Failed to create user record" },
+				{ status: 500 },
+			);
 		}
 
 		// Get date from query parameter or default to today

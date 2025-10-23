@@ -1,5 +1,6 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import { type NextRequest, NextResponse } from "next/server";
+import { ensureUser } from "../../../lib/ensure-user";
 import { prisma } from "../../../lib/prisma";
 
 export async function POST(_request: NextRequest) {
@@ -9,28 +10,32 @@ export async function POST(_request: NextRequest) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 
-		// Get user data from Clerk
-		const clerkUser = await fetch(`https://api.clerk.com/v1/users/${userId}`, {
-			headers: {
-				Authorization: `Bearer ${process.env.CLERK_SECRET_KEY}`,
-			},
-		}).then((res) => res.json());
+		const currentUser = await ensureUser(userId);
 
-		// Sync with Prisma
-		const user = await prisma.user.upsert({
-			where: { clerkId: userId },
-			update: {
-				name: `${clerkUser.first_name} ${clerkUser.last_name}`,
-				email: clerkUser.email_addresses[0]?.email_address,
-				avatar: clerkUser.image_url,
-				username: clerkUser.username || null,
-			},
-			create: {
-				clerkId: userId,
-				name: `${clerkUser.first_name} ${clerkUser.last_name}`,
-				email: clerkUser.email_addresses[0]?.email_address,
-				avatar: clerkUser.image_url,
-				username: clerkUser.username || null,
+		const clerk = await clerkClient();
+		const clerkUser = await clerk.users.getUser(userId);
+
+		let email: string | undefined;
+		if (clerkUser.emailAddresses && clerkUser.emailAddresses.length > 0) {
+			for (const address of clerkUser.emailAddresses) {
+				if (address.id === clerkUser.primaryEmailAddressId) {
+					email = address.emailAddress;
+					break;
+				}
+			}
+			if (!email) {
+				email = clerkUser.emailAddresses[0]?.emailAddress;
+			}
+		}
+
+		const user = await prisma.user.update({
+			where: { id: currentUser.id },
+			data: {
+				name: `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim() ||
+					currentUser.name,
+				email: email || currentUser.email,
+				avatar: clerkUser.imageUrl || currentUser.avatar,
+				username: clerkUser.username || currentUser.username,
 			},
 		});
 
