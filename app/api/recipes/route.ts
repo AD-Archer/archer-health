@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import type { Prisma, Recipe } from "@/lib/generated/prisma";
 import { ensureUser } from "@/lib/ensure-user";
 import { prisma } from "@/lib/prisma";
+import { buildCacheKey, getCachedJSON, setCachedJSON } from "@/lib/cache";
 
 export async function GET(request: NextRequest) {
 	try {
@@ -25,6 +26,26 @@ export async function GET(request: NextRequest) {
 		const carbsMax = searchParams.get("carbsMax");
 		const fatMax = searchParams.get("fatMax");
 		const savedOnly = searchParams.get("saved") === "1";
+
+		const cacheKey = buildCacheKey("recipes", [
+			userId,
+			category,
+			cuisine,
+			search,
+			caloriesMin,
+			caloriesMax,
+			timeMax,
+			calorieBand,
+			proteinMin,
+			carbsMax,
+			fatMax,
+			savedOnly ? "saved" : "public",
+		]);
+
+		const cachedRecipes = await getCachedJSON<Recipe[]>(cacheKey);
+		if (cachedRecipes) {
+			return NextResponse.json(cachedRecipes);
+		}
 
 		const where: Prisma.RecipeWhereInput = {
 			isPublic: true,
@@ -158,6 +179,8 @@ export async function GET(request: NextRequest) {
 			const j = Math.floor(Math.random() * (i + 1));
 			[recipes[i], recipes[j]] = [recipes[j], recipes[i]];
 		}
+
+		await setCachedJSON(cacheKey, recipes, 600);
 
 		return NextResponse.json(recipes);
 	} catch (error) {

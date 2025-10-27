@@ -2,6 +2,13 @@ import { auth } from "@clerk/nextjs/server";
 import { type NextRequest, NextResponse } from "next/server";
 import { ensureUser } from "../../../lib/ensure-user";
 import { prisma } from "../../../lib/prisma";
+import {
+	buildCacheKey,
+	getCachedJSON,
+	setCachedJSON,
+	invalidateCacheByPattern,
+} from "../../../lib/cache";
+import type { Meal } from "@/lib/generated/prisma";
 
 export async function POST(request: NextRequest) {
 	try {
@@ -56,6 +63,8 @@ export async function POST(request: NextRequest) {
 			},
 		});
 
+		await invalidateCacheByPattern(`${buildCacheKey("meals", [user.id])}*`);
+
 		return NextResponse.json(meal);
 	} catch (error) {
 		console.error("Error creating meal:", error);
@@ -84,10 +93,18 @@ export async function GET(_request: NextRequest) {
 			);
 		}
 
+		const cacheKey = buildCacheKey("meals", [user.id]);
+		const cachedMeals = await getCachedJSON<Meal[]>(cacheKey);
+		if (cachedMeals) {
+			return NextResponse.json(cachedMeals);
+		}
+
 		const meals = await prisma.meal.findMany({
 			where: { userId: user.id },
 			orderBy: { createdAt: "desc" },
 		});
+
+		await setCachedJSON(cacheKey, meals);
 
 		return NextResponse.json(meals);
 	} catch (error) {

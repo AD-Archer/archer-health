@@ -1,16 +1,25 @@
 "use client";
 
 import {
+	Bookmark,
 	CheckCircle,
+	Clock,
 	Edit,
 	Flame,
 	Plus,
 	Search,
+	Star,
 	Users,
 	Utensils,
 	Zap,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import {
+	type CSSProperties,
+	useCallback,
+	useEffect,
+	useMemo,
+	useState,
+} from "react";
 import { toast } from "sonner";
 import type { Food, MealEntry } from "@/app/data/data";
 import { Button } from "@/components/ui/button";
@@ -33,6 +42,16 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useStore } from "@/lib/store";
+import { cn } from "@/lib/utils";
+
+type AddEntryTab =
+	| "log-food"
+	| "quick-add"
+	| "recent-foods"
+	| "my-foods"
+	| "saved-foods"
+	| "create-food"
+	| "create-meal";
 
 interface AddEntryModalProps {
 	open: boolean;
@@ -40,7 +59,7 @@ interface AddEntryModalProps {
 	selectedDate?: Date;
 	initialSearchQuery?: string;
 	showMealDBWarning?: boolean;
-	defaultTab?: "log-food" | "quick-add" | "create-food" | "create-meal";
+	defaultTab?: AddEntryTab;
 	recipeData?: {
 		name: string;
 		ingredients: Array<{
@@ -64,10 +83,64 @@ export function AddEntryModal({
 	recipeData, // eslint-disable-line @typescript-eslint/no-unused-vars
 	defaultTab = "log-food",
 }: AddEntryModalProps) {
-	const [activeTab, setActiveTab] = useState(defaultTab);
+	const selectTabs: AddEntryTab[] = [
+		"log-food",
+		"quick-add",
+		"recent-foods",
+		"my-foods",
+		"saved-foods",
+	];
+	const createTabs: AddEntryTab[] = ["create-food", "create-meal"];
+	const [activeTab, setActiveTab] = useState<AddEntryTab>(defaultTab);
+	const [lastSelectTab, setLastSelectTab] = useState<AddEntryTab>(
+		selectTabs.includes(defaultTab) ? defaultTab : "log-food",
+	);
+	const [lastCreateTab, setLastCreateTab] = useState<AddEntryTab>(
+		createTabs.includes(defaultTab) ? defaultTab : "create-food",
+	);
+	const currentSection = selectTabs.includes(activeTab) ? "select" : "create";
+
+	const handleTabChange = (value: string) => {
+		const tabValue = value as AddEntryTab;
+		setActiveTab(tabValue);
+		if (selectTabs.includes(tabValue)) {
+			setLastSelectTab(tabValue);
+		} else {
+			setLastCreateTab(tabValue);
+		}
+	};
+
+	const handleSectionChange = (section: "select" | "create") => {
+		if (section === "select") {
+			setActiveTab(lastSelectTab);
+		} else {
+			setActiveTab(lastCreateTab);
+		}
+	};
+	const tabTriggerClasses =
+		"flex-none justify-center !h-auto px-2 py-2 text-xs font-medium border border-border text-foreground bg-muted/60 hover:bg-muted/80 transition-colors rounded-md data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm min-w-0 flex-shrink-0 whitespace-nowrap flex items-center";
+	const selectTabsListClasses = "w-full bg-transparent p-0 overflow-x-auto scrollbar-hide";
+	const createTabsListClasses = "w-full bg-transparent p-0 overflow-x-auto scrollbar-hide";
+	const selectTabsListStyle: CSSProperties = {
+		display: "flex",
+		gap: "0.5rem",
+		scrollbarWidth: "none", // Hide scrollbar on Firefox
+		msOverflowStyle: "none", // Hide scrollbar on IE/Edge
+	};
+	const createTabsListStyle: CSSProperties = {
+		display: "flex",
+		gap: "0.5rem",
+		scrollbarWidth: "none",
+		msOverflowStyle: "none",
+	};
 
 	useEffect(() => {
 		setActiveTab(defaultTab);
+		if (selectTabs.includes(defaultTab)) {
+			setLastSelectTab(defaultTab);
+		} else {
+			setLastCreateTab(defaultTab);
+		}
 	}, [defaultTab]);
 	// Quick Add state
 	const [quickCalories, setQuickCalories] = useState(
@@ -148,17 +221,42 @@ export function AddEntryModal({
 				<div className="flex-1 overflow-y-auto pr-1">
 					<Tabs
 						value={activeTab}
-						onValueChange={(value) => setActiveTab(value as typeof activeTab)}
+						onValueChange={(value) => handleTabChange(value)}
+						className="flex flex-col h-full"
 					>
-						<TabsList className="grid w-full grid-cols-5 flex-shrink-0">
-							<TabsTrigger value="log-food">Log Food</TabsTrigger>
-							<TabsTrigger value="quick-add">Quick Add</TabsTrigger>
-							<TabsTrigger value="my-foods">My Foods</TabsTrigger>
-							<TabsTrigger value="create-food">Create Food</TabsTrigger>
-							<TabsTrigger value="create-meal">Create Meal</TabsTrigger>
-						</TabsList>
+						<div className="space-y-3">
+							<div className="grid grid-cols-2 gap-2">
+								<Button
+									variant="outline"
+									size="sm"
+									className={cn(
+										"h-9 w-full border border-border text-foreground transition-colors",
+										currentSection === "select"
+											? "bg-primary text-primary-foreground border-primary shadow-sm hover:bg-primary"
+											: "bg-background hover:bg-muted/60",
+									)}
+									onClick={() => handleSectionChange("select")}
+								>
+									Select
+								</Button>
+								<Button
+									variant="outline"
+									size="sm"
+									className={cn(
+										"h-9 w-full border border-border text-foreground transition-colors",
+										currentSection === "create"
+											? "bg-primary text-primary-foreground border-primary shadow-sm hover:bg-primary"
+											: "bg-background hover:bg-muted/60",
+									)}
+									onClick={() => handleSectionChange("create")}
+								>
+									Create
+								</Button>
+							</div>
+						</div>
 
-						<TabsContent value="quick-add" className="space-y-4">
+						<div className="flex-1 overflow-y-auto">
+							<TabsContent value="quick-add" className="space-y-4">
 							<div className="space-y-6">
 								{/* Nutrition Inputs */}
 								<div className="grid grid-cols-2 gap-4">
@@ -274,10 +372,25 @@ export function AddEntryModal({
 							</div>
 						</TabsContent>
 
+						<TabsContent value="recent-foods" className="space-y-4">
+							<RecentFoodsTab
+								onClose={() => onOpenChange(false)}
+								selectedDate={selectedDate}
+							/>
+						</TabsContent>
+
 						<TabsContent value="my-foods" className="space-y-4">
 							<MyFoodsTab
 								onClose={() => onOpenChange(false)}
 								selectedDate={selectedDate}
+							/>
+						</TabsContent>
+
+						<TabsContent value="saved-foods" className="space-y-4">
+							<MyFoodsTab
+								onClose={() => onOpenChange(false)}
+								selectedDate={selectedDate}
+								variant="saved"
 							/>
 						</TabsContent>
 
@@ -298,6 +411,61 @@ export function AddEntryModal({
 						<TabsContent value="create-meal" className="space-y-4">
 							<CreateMealTab onClose={() => onOpenChange(false)} />
 						</TabsContent>
+						</div>
+
+						{currentSection === "select" ? (
+							<TabsList
+								className={selectTabsListClasses}
+								style={selectTabsListStyle}
+							>
+								<TabsTrigger value="log-food" className={tabTriggerClasses}>
+									<Search className="w-4 h-4 mr-1" />
+									<span className="hidden sm:inline">Log Food</span>
+								</TabsTrigger>
+								<TabsTrigger value="quick-add" className={tabTriggerClasses}>
+									<Zap className="w-4 h-4 mr-1" />
+									<span className="hidden sm:inline">Quick</span>
+								</TabsTrigger>
+								<TabsTrigger
+									value="recent-foods"
+									className={tabTriggerClasses}
+								>
+									<Clock className="w-4 h-4 mr-1" />
+									<span className="hidden sm:inline">Recent</span>
+								</TabsTrigger>
+								<TabsTrigger value="my-foods" className={tabTriggerClasses}>
+									<Users className="w-4 h-4 mr-1" />
+									<span className="hidden sm:inline">My Foods</span>
+								</TabsTrigger>
+								<TabsTrigger
+									value="saved-foods"
+									className={tabTriggerClasses}
+								>
+									<Bookmark className="w-4 h-4 mr-1" />
+									<span className="hidden sm:inline">Saved</span>
+								</TabsTrigger>
+							</TabsList>
+						) : (
+							<TabsList
+								className={createTabsListClasses}
+								style={createTabsListStyle}
+							>
+								<TabsTrigger
+									value="create-food"
+									className={tabTriggerClasses}
+								>
+									<Plus className="w-4 h-4 mr-1" />
+									<span className="hidden sm:inline">Food</span>
+								</TabsTrigger>
+								<TabsTrigger
+									value="create-meal"
+									className={tabTriggerClasses}
+								>
+									<Utensils className="w-4 h-4 mr-1" />
+									<span className="hidden sm:inline">Meal</span>
+								</TabsTrigger>
+							</TabsList>
+						)}
 					</Tabs>
 				</div>
 			</DialogContent>
@@ -335,6 +503,7 @@ function LogFoodTab({
 	>("breakfast");
 	const [foods, setFoods] = useState<Food[]>([]);
 	const [recentFoods, setRecentFoods] = useState<Food[]>([]);
+	const [savedFoodIds, setSavedFoodIds] = useState<Set<string>>(new Set());
 	const [isLoading, setIsLoading] = useState(false);
 	const [isLoadingRecent, setIsLoadingRecent] = useState(false);
 	const [isLogging, setIsLogging] = useState(false);
@@ -345,35 +514,57 @@ function LogFoodTab({
 		try {
 			// For USDA foods, we need to save them to user's collection
 			if (food.source === "usda") {
-				const response = await fetch("/api/foods", {
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify({
-						name: food.name,
-						calories: food.calories,
-						protein: food.protein,
-						carbs: food.carbs,
-						fat: food.fat,
-						fiber: food.fiber,
-						sugar: food.sugar,
-						sodium: food.sodium,
-						servingSize: food.servingSize,
-						servingUnit: food.servingUnit,
-						isPublic: false, // User's private copy
-						category: food.category,
-					}),
-				});
-
-				if (response.ok) {
-					const savedFood = await response.json();
-					addFood(savedFood);
-					toast.success("Food saved to your collection!");
+				const isAlreadySaved = savedFoodIds.has(food.id);
+				
+				if (isAlreadySaved) {
+					// Remove from saved foods
+					const response = await fetch(`/api/foods/${food.id}`, {
+						method: "DELETE",
+					});
+					
+					if (response.ok) {
+						setSavedFoodIds(prev => {
+							const newSet = new Set(prev);
+							newSet.delete(food.id);
+							return newSet;
+						});
+						toast.success("Food removed from your collection!");
+					} else {
+						toast.error("Error removing food");
+					}
 				} else {
-					const errorText = await response.text();
-					console.error("Error saving food:", errorText);
-					alert(`Error saving food: ${errorText}`);
+					// Save to user's collection
+					const response = await fetch("/api/foods", {
+						method: "POST",
+						headers: {
+							"Content-Type": "application/json",
+						},
+						body: JSON.stringify({
+							name: food.name,
+							calories: food.calories,
+							protein: food.protein,
+							carbs: food.carbs,
+							fat: food.fat,
+							fiber: food.fiber,
+							sugar: food.sugar,
+							sodium: food.sodium,
+							servingSize: food.servingSize,
+							servingUnit: food.servingUnit,
+							isPublic: false, // User's private copy
+							category: food.category,
+						}),
+					});
+
+					if (response.ok) {
+						const savedFood = await response.json();
+						addFood(savedFood);
+						setSavedFoodIds(prev => new Set(prev).add(savedFood.id));
+						toast.success("Food saved to your collection!");
+					} else {
+						const errorText = await response.text();
+						console.error("Error saving food:", errorText);
+						toast.error(`Error saving food: ${errorText}`);
+					}
 				}
 			}
 		} catch (error) {
@@ -390,6 +581,16 @@ function LogFoodTab({
 			if (response.ok) {
 				const data: Food[] = await response.json();
 				setRecentFoods(data.slice(0, 3));
+				// Mark user foods as saved
+				setSavedFoodIds(prev => {
+					const newSet = new Set(prev);
+					data.forEach((food: Food) => {
+						if (food.source === "user") {
+							newSet.add(food.id);
+						}
+					});
+					return newSet;
+				});
 			}
 		} catch (error) {
 			console.error("Error loading recent foods:", error);
@@ -407,6 +608,16 @@ function LogFoodTab({
 			if (response.ok) {
 				const data = await response.json();
 				setFoods(data);
+				// Mark user foods as saved
+				setSavedFoodIds(prev => {
+					const newSet = new Set(prev);
+					data.forEach((food: Food) => {
+						if (food.source === "user") {
+							newSet.add(food.id);
+						}
+					});
+					return newSet;
+				});
 			}
 		} catch (error) {
 			console.error("Error searching foods:", error);
@@ -528,9 +739,15 @@ function LogFoodTab({
 												variant="ghost"
 												size="sm"
 												onClick={() => handleSaveFood(food)}
-												className="ml-2"
+												className="ml-2 p-1 h-8 w-8"
 											>
-												Save
+												<Star
+													className={`w-4 h-4 ${
+														savedFoodIds.has(food.id)
+															? "fill-yellow-500 text-yellow-500"
+															: "text-yellow-500"
+													}`}
+												/>
 											</Button>
 										)}
 									</div>
@@ -541,44 +758,46 @@ function LogFoodTab({
 								No foods found
 							</div>
 						)
-					) : // Show recent foods
-					recentFoods.length > 0 ? (
+					) : (
+						// Show recent foods section
 						<>
 							<div className="text-sm font-medium text-muted-foreground mb-2">
 								Recent Foods
 							</div>
-							{recentFoods.map((food) => (
-								<button
-									key={food.id}
-									onClick={() => setSelectedFood(food)}
-									className={`w-full text-left p-3 rounded-lg hover:bg-muted transition-colors ${
-										selectedFood?.id === food.id
-											? "bg-primary/10 border border-primary"
-											: ""
-									}`}
-								>
-									<div className="flex items-center gap-2">
-										<div className="font-medium">{food.name}</div>
-										{food.isVerified && (
-											<CheckCircle className="w-4 h-4 text-green-600" />
-										)}
-									</div>
-									<div className="text-sm text-muted-foreground">
-										{food.calories} cal • P: {food.protein}g • C: {food.carbs}g
-										• F: {food.fat}g
-										{food.source === "usda" && (
-											<span className="ml-2 text-xs bg-green-100 text-green-800 px-1 py-0.5 rounded">
-												USDA
-											</span>
-										)}
-									</div>
-								</button>
-							))}
+							{recentFoods.length > 0 ? (
+								recentFoods.map((food) => (
+									<button
+										key={food.id}
+										onClick={() => setSelectedFood(food)}
+										className={`w-full text-left p-3 rounded-lg hover:bg-muted transition-colors ${
+											selectedFood?.id === food.id
+												? "bg-primary/10 border border-primary"
+												: ""
+										}`}
+									>
+										<div className="flex items-center gap-2">
+											<div className="font-medium">{food.name}</div>
+											{food.isVerified && (
+												<CheckCircle className="w-4 h-4 text-green-600" />
+											)}
+										</div>
+										<div className="text-sm text-muted-foreground">
+											{food.calories} cal • P: {food.protein}g • C: {food.carbs}g
+											• F: {food.fat}g
+											{food.source === "usda" && (
+												<span className="ml-2 text-xs bg-green-100 text-green-800 px-1 py-0.5 rounded">
+													USDA
+												</span>
+											)}
+										</div>
+									</button>
+								))
+							) : (
+								<div className="text-center text-muted-foreground py-4">
+									No recent foods yet. Start typing to search for foods.
+								</div>
+							)}
 						</>
-					) : (
-						<div className="text-center text-muted-foreground py-4">
-							Start typing to search for foods
-						</div>
 					)}
 				</div>
 			</ScrollArea>
@@ -1147,12 +1366,232 @@ function CreateMealTab(_: { onClose: () => void }) {
 	);
 }
 
-function MyFoodsTab({
+function RecentFoodsTab({
 	onClose,
 	selectedDate,
 }: {
 	onClose: () => void;
 	selectedDate?: Date;
+}) {
+	const [recentFoods, setRecentFoods] = useState<Food[]>([]);
+	const [selectedFood, setSelectedFood] = useState<Food | null>(null);
+	const [servings, setServings] = useState("1");
+	const [mealType, setMealType] = useState<
+		"breakfast" | "lunch" | "dinner" | "snacks"
+	>("breakfast");
+	const [isLoading, setIsLoading] = useState(false);
+	const [isLogging, setIsLogging] = useState(false);
+	const addMealEntry = useStore((state) => state.addMealEntry);
+
+	useEffect(() => {
+		const loadRecentFoods = async () => {
+			setIsLoading(true);
+			try {
+				const response = await fetch("/api/foods?limit=12");
+				if (response.ok) {
+					const data: Food[] = await response.json();
+					setRecentFoods(data);
+				}
+			} catch (error) {
+				console.error("Error loading recent foods:", error);
+			} finally {
+				setIsLoading(false);
+			}
+		};
+
+		void loadRecentFoods();
+	}, []);
+
+	const handleLogFood = async () => {
+		if (!selectedFood) return;
+
+		setIsLogging(true);
+		const servingAmount = Number.parseFloat(servings) || 1;
+		const entry: MealEntry = {
+			id: Date.now().toString(),
+			date: selectedDate
+				? selectedDate.toISOString().split("T")[0]
+				: new Date().toISOString().split("T")[0],
+			mealType,
+			foodId: selectedFood.id,
+			servings: servingAmount,
+			calories: selectedFood.calories * servingAmount,
+			protein: selectedFood.protein * servingAmount,
+			carbs: selectedFood.carbs * servingAmount,
+			fat: selectedFood.fat * servingAmount,
+		};
+
+		try {
+			const response = await fetch("/api/meal-entries", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify(entry),
+			});
+
+			if (response.ok) {
+				const createdEntry = await response.json();
+				addMealEntry(createdEntry);
+				onClose();
+			} else {
+				console.error("Error logging recent food");
+			}
+		} catch (error) {
+			console.error("Error logging recent food:", error);
+		} finally {
+			setIsLogging(false);
+		}
+	};
+
+	return (
+		<div className="space-y-4">
+			<div className="text-sm text-muted-foreground">
+				Your most recently saved or created foods
+			</div>
+			<ScrollArea className="h-48 border rounded-lg">
+				<div className="p-2 space-y-1">
+					{isLoading ? (
+						<div className="text-center text-muted-foreground py-4">
+							Loading recent foods...
+						</div>
+					) : recentFoods.length > 0 ? (
+						recentFoods.map((food) => (
+							<div
+								key={food.id}
+								className={`p-3 rounded-lg hover:bg-muted transition-colors ${
+									selectedFood?.id === food.id
+										? "bg-primary/10 border border-primary"
+										: ""
+								}`}
+							>
+								<button
+									onClick={() => setSelectedFood(food)}
+									className="flex flex-col gap-1 text-left w-full"
+								>
+									<div className="flex items-center justify-between">
+										<div className="flex items-center gap-2">
+											<span className="font-medium">{food.name}</span>
+											{food.isVerified && (
+												<CheckCircle className="w-4 h-4 text-green-600" />
+											)}
+										</div>
+										{food.source === "usda" && (
+											<span className="text-xs bg-green-100 text-green-800 px-1 py-0.5 rounded">
+												USDA
+											</span>
+										)}
+									</div>
+									<div className="text-sm text-muted-foreground">
+										{food.calories} cal • P: {food.protein}g • C: {food.carbs}g
+										• F: {food.fat}g
+									</div>
+								</button>
+							</div>
+						))
+					) : (
+						<div className="text-center text-muted-foreground py-4">
+							No recent foods tracked yet.
+						</div>
+					)}
+				</div>
+			</ScrollArea>
+
+			<div className="grid grid-cols-2 gap-4">
+				<div className="space-y-2">
+					<Label>Servings</Label>
+					<Input
+						type="number"
+						min="0.01"
+						step="0.1"
+						value={servings}
+						onChange={(e) => setServings(e.target.value)}
+						placeholder="1"
+						disabled={!selectedFood}
+					/>
+				</div>
+				<div className="space-y-2">
+					<Label>Meal Type</Label>
+					<Select
+						value={mealType}
+						onValueChange={(value: string) =>
+							setMealType(value as "breakfast" | "lunch" | "dinner" | "snacks")
+						}
+						disabled={!selectedFood}
+					>
+						<SelectTrigger>
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="breakfast">Breakfast</SelectItem>
+							<SelectItem value="lunch">Lunch</SelectItem>
+							<SelectItem value="dinner">Dinner</SelectItem>
+							<SelectItem value="snacks">Snacks</SelectItem>
+						</SelectContent>
+					</Select>
+				</div>
+			</div>
+
+			{selectedFood && (
+				<div className="grid grid-cols-4 gap-2 text-sm">
+					<div className="text-center p-2 bg-background rounded">
+						<div className="font-semibold">
+							{Math.round(
+								selectedFood.calories * Number.parseFloat(servings || "1"),
+							)}
+						</div>
+						<div className="text-muted-foreground text-xs">Calories</div>
+					</div>
+					<div className="text-center p-2 bg-background rounded">
+						<div className="font-semibold">
+							{Math.round(
+								selectedFood.protein * Number.parseFloat(servings || "1"),
+							)}
+							g
+						</div>
+						<div className="text-muted-foreground text-xs">Protein</div>
+					</div>
+					<div className="text-center p-2 bg-background rounded">
+						<div className="font-semibold">
+							{Math.round(
+								selectedFood.carbs * Number.parseFloat(servings || "1"),
+							)}
+							g
+						</div>
+						<div className="text-muted-foreground text-xs">Carbs</div>
+					</div>
+					<div className="text-center p-2 bg-background rounded">
+						<div className="font-semibold">
+							{Math.round(
+								selectedFood.fat * Number.parseFloat(servings || "1"),
+							)}
+							g
+						</div>
+						<div className="text-muted-foreground text-xs">Fat</div>
+					</div>
+				</div>
+			)}
+
+			<Button
+				className="w-full"
+				size="lg"
+				onClick={handleLogFood}
+				disabled={!selectedFood || isLogging}
+			>
+				{isLogging ? "Logging..." : "Log Selected Food"}
+			</Button>
+		</div>
+	);
+}
+
+function MyFoodsTab({
+	onClose,
+	selectedDate,
+	variant = "my",
+}: {
+	onClose: () => void;
+	selectedDate?: Date;
+	variant?: "my" | "saved";
 }) {
 	const [selectedFood, setSelectedFood] = useState<Food | null>(null);
 	const [servings, setServings] = useState("1");
@@ -1177,6 +1616,28 @@ function MyFoodsTab({
 	const [isEditing, setIsEditing] = useState(false);
 	const addMealEntry = useStore((state) => state.addMealEntry);
 	const { foods, setFoods } = useStore((state) => state);
+	const isSavedVariant = variant === "saved";
+	const filteredFoods = useMemo(
+		() =>
+			foods.filter((food) => food.source === "user" && (isSavedVariant ? !food.isPublic : food.isPublic)),
+		[foods, isSavedVariant],
+	);
+	const description = isSavedVariant
+		? "Select from foods you've saved"
+		: "Select from foods you've created";
+	const emptyState = isSavedVariant
+		? "No saved foods yet. Save foods to keep them handy!"
+		: "No custom foods yet. Create some foods first!";
+
+	useEffect(() => {
+		if (!selectedFood) return;
+		const stillExists = filteredFoods.some(
+			(food) => food.id === selectedFood.id,
+		);
+		if (!stillExists) {
+			setSelectedFood(null);
+		}
+	}, [filteredFoods, selectedFood]);
 
 	const handleStartEdit = (food: Food) => {
 		setEditingFood(food);
@@ -1245,6 +1706,8 @@ function MyFoodsTab({
 	};
 
 	useEffect(() => {
+		if (foods.length > 0) return;
+
 		const loadUserFoods = async () => {
 			setIsLoading(true);
 			try {
@@ -1261,7 +1724,7 @@ function MyFoodsTab({
 		};
 
 		loadUserFoods();
-	}, [setFoods]);
+	}, [foods.length, setFoods]);
 
 	const handleLogFood = async () => {
 		if (!selectedFood) return;
@@ -1307,9 +1770,7 @@ function MyFoodsTab({
 
 	return (
 		<div className="space-y-4">
-			<div className="text-sm text-muted-foreground">
-				Select from your saved foods
-			</div>
+			<div className="text-sm text-muted-foreground">{description}</div>
 
 			<ScrollArea className="h-48 border rounded-lg">
 				<div className="p-2 space-y-1">
@@ -1317,8 +1778,8 @@ function MyFoodsTab({
 						<div className="text-center text-muted-foreground py-4">
 							Loading your foods...
 						</div>
-					) : foods.length > 0 ? (
-						foods.map((food) => (
+					) : filteredFoods.length > 0 ? (
+						filteredFoods.map((food) => (
 							<div
 								key={food.id}
 								className={`p-3 rounded-lg hover:bg-muted transition-colors ${
@@ -1362,7 +1823,7 @@ function MyFoodsTab({
 						))
 					) : (
 						<div className="text-center text-muted-foreground py-4">
-							No saved foods yet. Create some foods first!
+							{emptyState}
 						</div>
 					)}
 				</div>
