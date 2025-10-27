@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { type NextRequest, NextResponse } from "next/server";
 import { ensureUser } from "../../../lib/ensure-user";
 import { prisma } from "../../../lib/prisma";
+import { buildCacheKey, invalidateCacheByPattern } from "../../../lib/cache";
 
 export async function POST(request: NextRequest) {
 	try {
@@ -146,6 +147,10 @@ export async function POST(request: NextRequest) {
 						userId: user.id,
 					},
 				});
+
+				await invalidateCacheByPattern(
+					`${buildCacheKey("foods", [user.id])}*`,
+				);
 			}
 
 			actualFoodId = existingFood.id;

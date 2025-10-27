@@ -3,6 +3,13 @@ import { type NextRequest, NextResponse } from "next/server";
 import { ensureUser } from "../../../lib/ensure-user";
 import { calculateNutritionNeeds } from "../../../lib/nutrition-calculator";
 import { prisma } from "../../../lib/prisma";
+import {
+	buildCacheKey,
+	getCachedJSON,
+	setCachedJSON,
+	invalidateCacheByPattern,
+} from "../../../lib/cache";
+import type { User } from "@/lib/generated/prisma";
 
 export async function GET(_request: NextRequest) {
 	try {
@@ -38,8 +45,24 @@ export async function GET(_request: NextRequest) {
 			user.goalType &&
 			user.weeklyGoal;
 
+		const cacheKey = buildCacheKey("user-profile", [user.id]);
+		const needsAutoCalculation =
+			(!macroGoals || !dailyCalorieGoal) && hasCompleteProfile;
+
+		if (!needsAutoCalculation) {
+			const cachedProfile = await getCachedJSON<{
+				user: User & {
+					macroGoals: typeof macroGoals;
+					dailyCalorieGoal: typeof dailyCalorieGoal;
+				};
+			}>(cacheKey);
+			if (cachedProfile) {
+				return NextResponse.json(cachedProfile);
+			}
+		}
+
 		// Auto-calculate nutrition needs if profile is complete but goals are missing or outdated
-		if ((!macroGoals || !dailyCalorieGoal) && hasCompleteProfile) {
+		if (needsAutoCalculation) {
 			const userForCalculation = {
 				id: user.id,
 				name: user.name || "",
@@ -87,7 +110,10 @@ export async function GET(_request: NextRequest) {
 			// Weights are already stored in kg, no conversion needed
 		};
 
-		return NextResponse.json({ user: userWithConvertedWeights });
+		const responsePayload = { user: userWithConvertedWeights };
+		await setCachedJSON(cacheKey, responsePayload, 300);
+
+		return NextResponse.json(responsePayload);
 	} catch (error) {
 		console.error("Error fetching user profile:", error);
 		return NextResponse.json(
@@ -271,6 +297,10 @@ export async function PUT(request: NextRequest) {
 			...updatedUser,
 			macroGoals: updatedUser.macroGoals,
 		};
+
+		await invalidateCacheByPattern(
+			`${buildCacheKey("user-profile", [updatedUser.id])}*`,
+		);
 
 		return NextResponse.json({ user: responseUser });
 	} catch (error) {

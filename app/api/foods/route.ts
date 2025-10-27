@@ -2,6 +2,12 @@ import { auth } from "@clerk/nextjs/server";
 import { type NextRequest, NextResponse } from "next/server";
 import type { Food } from "../../../app/data/data";
 import { ensureUser } from "../../../lib/ensure-user";
+import {
+	buildCacheKey,
+	getCachedJSON,
+	setCachedJSON,
+	invalidateCacheByPattern,
+} from "../../../lib/cache";
 import { prisma } from "../../../lib/prisma";
 
 export async function POST(request: NextRequest) {
@@ -64,6 +70,8 @@ export async function POST(request: NextRequest) {
 				userId: user.id,
 			},
 		});
+
+		await invalidateCacheByPattern(`${buildCacheKey("foods", [user.id])}*`);
 
 		return NextResponse.json(food);
 	} catch (error) {
@@ -161,6 +169,8 @@ export async function PUT(request: NextRequest) {
 			},
 		});
 
+		await invalidateCacheByPattern(`${buildCacheKey("foods", [user.id])}*`);
+
 		return NextResponse.json(newFood);
 	} catch (error) {
 		console.error("Error updating food:", error);
@@ -173,6 +183,70 @@ export async function PUT(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
 	try {
+		const { searchParams } = new URL(request.url);
+		const query = searchParams.get("q");
+		const limit = parseInt(searchParams.get("limit") || "50", 10);
+
+		// For search queries, allow unauthenticated access to search USDA foods
+		if (query) {
+			const cacheKey = buildCacheKey("foods", [
+				"public",
+				`query:${query}`,
+				`limit:${limit}`,
+			]);
+
+			const cachedFoods = await getCachedJSON<Food[]>(cacheKey);
+			if (cachedFoods) {
+				return NextResponse.json(cachedFoods);
+			}
+
+			// Search USDA foods (public data)
+			const usdaFoods = await prisma.usdaFood.findMany({
+				where: {
+					description: {
+						contains: query,
+						mode: "insensitive",
+					},
+				},
+				include: {
+					nutrients: {
+						include: {
+							nutrient: true,
+						},
+					},
+					portions: {
+						include: {
+							measureUnit: true,
+						},
+						take: 1, // Get first portion for serving info
+					},
+				},
+				take: limit,
+			});
+
+			const transformedFoods: Food[] = usdaFoods.map((food) => ({
+				id: `usda-${food.fdcId}`,
+				name: food.description,
+				calories: food.nutrients.find((n) => n.nutrient.name === "Energy")?.amount || 0,
+				protein: food.nutrients.find((n) => n.nutrient.name === "Protein")?.amount || 0,
+				carbs: food.nutrients.find((n) => n.nutrient.name === "Carbohydrate, by difference")?.amount || 0,
+				fat: food.nutrients.find((n) => n.nutrient.name === "Total lipid (fat)")?.amount || 0,
+				fiber: food.nutrients.find((n) => n.nutrient.name === "Fiber, total dietary")?.amount || 0,
+				sugar: food.nutrients.find((n) => n.nutrient.name === "Sugars, total")?.amount || 0,
+				sodium: food.nutrients.find((n) => n.nutrient.name === "Sodium, Na")?.amount || 0,
+				servingSize: (food.portions[0]?.amount || 100).toString(),
+				servingUnit: food.portions[0]?.measureUnit?.name || "g",
+				isPublic: true,
+				createdBy: "USDA",
+				source: "usda" as const,
+				category: "USDA Food", // food.foodCategoryId doesn't have description in the include
+			}));
+
+			await setCachedJSON(cacheKey, transformedFoods);
+			return NextResponse.json(transformedFoods);
+		}
+
+		// For non-search requests, require authentication
 		const { userId } = await auth();
 		if (!userId) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -189,9 +263,16 @@ export async function GET(request: NextRequest) {
 			);
 		}
 
-		const { searchParams } = new URL(request.url);
-		const query = searchParams.get("q");
-		const limit = parseInt(searchParams.get("limit") || "50", 10);
+		const cacheKey = buildCacheKey("foods", [
+			user.id,
+			query ? `query:${query}` : "all",
+			`limit:${limit}`,
+		]);
+
+		const cachedFoods = await getCachedJSON<Food[]>(cacheKey);
+		if (cachedFoods) {
+			return NextResponse.json(cachedFoods);
+		}
 
 		let foods: Food[];
 
@@ -312,6 +393,8 @@ export async function GET(request: NextRequest) {
 				category: food.category || undefined,
 			}));
 		}
+
+		await setCachedJSON(cacheKey, foods, query ? 120 : 300);
 
 		return NextResponse.json(foods);
 	} catch (error) {
