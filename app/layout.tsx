@@ -4,6 +4,7 @@ import type React from "react";
 import { Toaster } from "sonner";
 import "./globals.css";
 import ClientClerkProvider from "../components/client-clerk-provider";
+import PlausibleAnalytics from "../components/plausible-analytics";
 
 // Ensure layout runs on the server at request-time so runtime environment
 // variables (like NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) are read when the
@@ -25,6 +26,7 @@ const poppins = Poppins({
 
 const baseUrl =
 	process.env.NEXT_PUBLIC_SITE_URL || "https://health.adarcher.app";
+const plausibleDomain = new URL(baseUrl).hostname;
 
 export const metadata: Metadata = {
 	title: "Archer Health | Calorie & Health Tracker",
@@ -220,6 +222,7 @@ export default function RootLayout({
 				</head>
 				<body className="font-sans antialiased">
 					<ClientClerkProvider publishableKey={clerkKey}>
+						<PlausibleAnalytics domain={plausibleDomain} />
 						{children}
 					</ClientClerkProvider>
 					<Toaster />
@@ -324,6 +327,7 @@ export default function RootLayout({
 					<meta name="apple-mobile-web-app-title" content="Archer Health" />
 				</head>
 				<body className="font-sans antialiased">
+					<PlausibleAnalytics domain={plausibleDomain} />
 					<div className="fixed inset-x-0 top-0 bg-red-600 text-white text-sm text-center py-2 z-50">
 						WARNING: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is not set.
 						Authentication is disabled.
